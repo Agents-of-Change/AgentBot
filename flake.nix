@@ -7,7 +7,7 @@
       pkgs = nixpkgs.legacyPackages.${system};
     in {
       devShells.${system}.default = pkgs.mkShellNoCC {
-        buildInputs = [ pkgs.nodejs-18_x pkgs.yarn ];
+        buildInputs = [ pkgs.python3 pkgs.poetry ];
       };
     };
 }
