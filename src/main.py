@@ -1,6 +1,9 @@
+from operator import index
 import discord
-from config import TOKEN, GUILD_ID
+from config import TOKEN, GUILD_ID, INCOMPATIBILITIES
 from db import sqlite3, db
+from collections import defaultdict
+import random
 
 intents = discord.Intents.default()
 # intents.message_content = True
@@ -25,18 +28,19 @@ async def one_on_ones_join(ctx):
                 VALUES (?, TRUE)
             ON CONFLICT(discordId) DO UPDATE SET
                 matchable = TRUE
-        """, 
-        (str(ctx.author.id), )
+        """,
+        (str(ctx.author.id),),
     )
     db.commit()
     await ctx.respond("You are now signed up for one-on-ones")
+
 
 async def one_on_ones_leave(ctx):
     db.execute(
         """
             UPDATE users SET matchable = FALSE WHERE discordId = ?
         """,
-        (str(ctx.author.id), )
+        (str(ctx.author.id),),
     )
     db.commit()
     await ctx.respond("You are no longer signed up for one-on-ones")
@@ -54,6 +58,99 @@ async def one_on_ones(
     if action == "leave":
         return await one_on_ones_leave(ctx)
     await ctx.respond("Invalid option")
+
+
+def index_past_matches():
+    past_matches = defaultdict(lambda: defaultdict(lambda: 0))
+    cur = db.cursor()
+    cur.execute("SELECT personA, personB FROM past_matches")
+    for person_a_id, person_b_id in cur.fetchall():
+        past_matches[person_a_id][person_b_id] += 1
+        past_matches[person_b_id][person_a_id] += 1
+    return past_matches
+
+
+def discord_id_to_uid(discord_id):
+    cur = db.cursor()
+    cur.execute("SELECT id FROM users WHERE discordId = ?", (str(discord_id),))
+    r = cur.fetchone()
+    if r is None:
+        raise AssertionError(f"No user with discordId {discord_id!r}")
+    return r
+
+
+def index_incompatibilities():
+    incompatibilites = defaultdict(lambda: defaultdict(lambda: False))
+    for a, b in INCOMPATIBILITIES:
+        a = discord_id_to_uid(a)
+        b = discord_id_to_uid(b)
+        incompatibilites[a][b] = True
+        incompatibilites[b][a] = True
+    return incompatibilites
+
+
+def matches_for_user(past_matches, incompatibilities, matchable_ids, person_id):
+    r = [
+        uid
+        for uid in matchable_ids
+        if uid != person_id and not incompatibilities[person_id][uid]
+    ]
+    min_past_matches = min(past_matches[person_id][uid] for uid in r)
+    return set(uid for uid in r if past_matches[person_id][uid] <= min_past_matches)
+
+
+def generate_matches():
+    past_matches = index_past_matches()
+    incompatibilities = index_incompatibilities()
+    cur = db.cursor()
+    cur.execute("SELECT id FROM users WHERE matchable = TRUE")
+    matchable_ids = cur.fetchall()
+
+    matches = []
+    matched = set()
+    for uid in matchable_ids:
+        if uid in matched:
+            continue
+        possible_matches = matches_for_user(
+            past_matches, incompatibilities, matchable_ids, uid
+        )
+        possible_matches -= matched  # remove all items in matched from the set
+        match = random.choice(possible_matches)
+        matches.append((uid, match))
+        matched.add(uid)
+        matched.add(match)
+    return matches
+
+
+def write_matches(matches):
+    db.executemany("INSERT INTO past_matches (personA, personB) VALUES (?, ?)", matches)
+    db.commit()
+
+
+def matches_with_discord_ids(matches):
+    uids = []
+    for a, b in matches:
+        uids.append(a)
+        uids.append(b)
+    cur = db.cursor()
+    db.executemany("SELECT discordId FROM users WHERE id = ?", uids)
+    uid_to_discord_id = dict(zip(uids, cur.fetchall()))
+    return [(uid_to_discord_id[a], uid_to_discord_id[b]) for a, b in matches]
+
+
+async def can_roll_one_on_ones(author):
+    # TODO: Role check
+    return True
+
+
+@bot.slash_command(guild_ids=[GUILD_ID])
+async def roll_one_on_ones(ctx):
+    matches = generate_matches()
+    discord_matches = matches_with_discord_ids(matches)
+    msg = ["New pairings!", ""]
+    msg += [f"<@{a}> <-> <@{b}>" for a, b in discord_matches]
+    write_matches(matches)
+    await ctx.respond("\n".join(msg))
 
 
 bot.run(TOKEN)
