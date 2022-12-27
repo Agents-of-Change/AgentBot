@@ -1,0 +1,15 @@
+{
+  "name": "agentbot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:Agents-of-Change/AgentBot.git",
+  "devDependencies": {
+    "@types/node": "^18.11.18",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "@discordjs/rest": "^1.5.0",
+    "discord-api-types": "^0.37.24",
+    "discord.js": "^14.7.1"
+  }
+}
