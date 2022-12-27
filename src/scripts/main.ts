@@ -3,9 +3,9 @@ import {
   CacheType,
   ChatInputCommandInteraction,
 } from "discord.js";
-import { COMMANDS } from "../allCommands.js";
-import { client } from "../client.js";
-import { CONFIG } from "../config.js";
+import { COMMANDS } from "../allCommands";
+import { client } from "../client";
+import { CONFIG } from "../config";
 import { CommandType } from "../types";
 
 const commandsMap: Map<string, CommandType> = new Map();
