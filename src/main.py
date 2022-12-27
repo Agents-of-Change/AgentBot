@@ -105,6 +105,8 @@ def generate_matches():
     cur = db.cursor()
     cur.execute("SELECT id FROM users WHERE matchable = TRUE")
     matchable_ids = cur.fetchall()
+    # This might help avoid the same people not getting picked every time
+    random.shuffle(matchable_ids)
 
     matches = []
     unmatched = []
