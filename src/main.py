@@ -107,6 +107,7 @@ def generate_matches():
     matchable_ids = cur.fetchall()
 
     matches = []
+    unmatched = []
     matched = set()
     for uid in matchable_ids:
         if uid in matched:
@@ -115,6 +116,9 @@ def generate_matches():
             past_matches, incompatibilities, matchable_ids, uid
         )
         possible_matches -= matched  # remove all items in matched from the set
+        if not possible_matches:
+            unmatched.append(uid)
+            continue
         match = random.choice(possible_matches)
         matches.append((uid, match))
         matched.add(uid)
@@ -127,14 +131,22 @@ def write_matches(matches):
     db.commit()
 
 
+def fetch_many_discord_ids(uids):
+    cur = db.cursor()
+    db.executemany("SELECT discordId FROM users WHERE id = ?", uids)
+    r = cur.fetchall()
+    if len(r) != len(uids):
+        raise AssertionError("Invalid uid(s) passed")
+    return r
+
+
 def matches_with_discord_ids(matches):
     uids = []
     for a, b in matches:
         uids.append(a)
         uids.append(b)
-    cur = db.cursor()
-    db.executemany("SELECT discordId FROM users WHERE id = ?", uids)
-    uid_to_discord_id = dict(zip(uids, cur.fetchall()))
+    discord_ids = fetch_many_discord_ids(uids)
+    uid_to_discord_id = dict(zip(uids, discord_ids))
     return [(uid_to_discord_id[a], uid_to_discord_id[b]) for a, b in matches]
 
 
@@ -143,12 +155,22 @@ async def can_roll_one_on_ones(author):
     return True
 
 
+def mention(discord_id):
+    return f"<@{discord_id}>"
+
+
 @bot.slash_command(guild_ids=[GUILD_ID])
 async def roll_one_on_ones(ctx):
-    matches = generate_matches()
+    matches, unmatched = generate_matches()
     discord_matches = matches_with_discord_ids(matches)
     msg = ["New pairings!", ""]
-    msg += [f"<@{a}> <-> <@{b}>" for a, b in discord_matches]
+    msg += [mention(a) + " <-> " + mention(b) for a, b in discord_matches]
+    if unmatched:
+        msg += [
+            "",
+            "Unmatched: "
+            + " ".join(mention(i) for i in fetch_many_discord_ids(unmatched)),
+        ]
     write_matches(matches)
     await ctx.respond("\n".join(msg))
 
