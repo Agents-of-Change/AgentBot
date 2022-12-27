@@ -29,7 +29,7 @@ async def one_on_ones_join(ctx):
         (str(ctx.author.id), )
     )
     db.commit()
-    await ctx.respond("Done!")
+    await ctx.respond("You are now signed up for one-on-ones")
 
 async def one_on_ones_leave(ctx):
     db.execute(
@@ -39,7 +39,7 @@ async def one_on_ones_leave(ctx):
         (str(ctx.author.id), )
     )
     db.commit()
-    await ctx.respond("Done!")
+    await ctx.respond("You are no longer signed up for one-on-ones")
 
 
 @bot.slash_command(guild_ids=[GUILD_ID])
