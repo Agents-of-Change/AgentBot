@@ -19,7 +19,7 @@ async def main():
     for tag in tags:
         tag = tag.strip()
         print(f"Processing: {tag!r}")
-        name, _, discrim = tag.partition("#")
+        name, discrim = tag.split("#")
         members = await guild.query_members(name)
         members = [m for m in members if m.name == name and m.discriminator == discrim]
         if len(members) != 1:
@@ -33,7 +33,7 @@ async def main():
     cur.executemany("INSERT INTO users (discordId, matchable) VALUES (?, TRUE)", params)
     db.commit()
     print(f"Done!")
-    
+
 
 @client.event
 async def on_ready():
