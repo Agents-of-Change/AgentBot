@@ -1,7 +1,5 @@
 import os
 
-from test import INCOMPATIBILITIES
-
 TOKEN = os.environ["TOKEN"]
 GUILD_ID = int(os.environ["GUILD_ID"])
 DB_FILENAME = os.environ["DB_FILENAME"]
