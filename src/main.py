@@ -75,7 +75,7 @@ def discord_id_to_uid(discord_id):
     r = cur.fetchone()
     if r is None:
         raise AssertionError(f"No user with discordId {discord_id!r}")
-    return r
+    return r[0]
 
 
 def index_incompatibilities():
@@ -103,7 +103,7 @@ def generate_matches():
     incompatibilities = index_incompatibilities()
     cur = db.cursor()
     cur.execute("SELECT id FROM users WHERE matchable = TRUE")
-    matchable_ids = cur.fetchall()
+    matchable_ids = [i[0] for i in cur.fetchall()]
     # This might help avoid the same people not getting picked every time
     random.shuffle(matchable_ids)
 
@@ -142,7 +142,7 @@ def fetch_many_discord_ids(uids):
         r = cur.fetchone()
         if r is None:
             raise AssertionError(f"Invalid UID: {i}")
-        out.append(r)
+        out.append(r[0])
     return out
 
 
