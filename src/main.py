@@ -137,6 +137,7 @@ def fetch_many_discord_ids(uids):
     cur = db.cursor()
     out = []
     for i in uids:
+        print(i, type(i))
         db.execute("SELECT discordId FROM users WHERE id = ?", (i, ))
         r = cur.fetchone()
         if r is None:
