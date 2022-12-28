@@ -44,7 +44,7 @@ async def main():
 
     for line in matches:
         print(f"Processing: {line!r}")
-        a, b = line.split(" <-> ")
+        a, b = line.strip().split(" <-> ")
         a = await query_member(guild, parse_tag(a))
         b = await query_member(guild, parse_tag(b))
         a_id = uid_from_discord(a.id)
