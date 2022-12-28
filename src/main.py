@@ -1,5 +1,3 @@
-from operator import index
-from turtle import pos
 import discord
 from config import TOKEN, GUILD_ID, INCOMPATIBILITIES
 from db import sqlite3, db
