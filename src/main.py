@@ -125,7 +125,7 @@ def generate_matches():
         matches.append((uid, match))
         matched.add(uid)
         matched.add(match)
-    return matches
+    return matches, unmatched
 
 
 def write_matches(matches):
