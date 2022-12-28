@@ -135,11 +135,14 @@ def write_matches(matches):
 
 def fetch_many_discord_ids(uids):
     cur = db.cursor()
-    db.executemany("SELECT discordId FROM users WHERE id = ?", uids)
-    r = cur.fetchall()
-    if len(r) != len(uids):
-        raise AssertionError("Invalid uid(s) passed")
-    return r
+    out = []
+    for i in uids:
+        db.executemany("SELECT discordId FROM users WHERE id = ?", (i, ))
+        r = cur.fetchone()
+        if r is None:
+            raise AssertionError(f"Invalid UID: {i}")
+        out.append(r)
+    return out
 
 
 def matches_with_discord_ids(matches):
