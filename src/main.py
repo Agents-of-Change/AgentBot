@@ -1,4 +1,5 @@
 from operator import index
+from turtle import pos
 import discord
 from config import TOKEN, GUILD_ID, INCOMPATIBILITIES
 from db import sqlite3, db
@@ -118,6 +119,7 @@ def generate_matches():
             past_matches, incompatibilities, matchable_ids, uid
         )
         possible_matches -= matched  # remove all items in matched from the set
+        possible_matches = list(possible_matches)
         if not possible_matches:
             unmatched.append(uid)
             continue
