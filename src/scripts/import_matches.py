@@ -45,8 +45,8 @@ async def main():
     for line in matches:
         print(f"Processing: {line!r}")
         a, b = line.split(" <-> ")
-        a = await query_member(guild, *parse_tag(a))
-        b = await query_member(guild, *parse_tag(b))
+        a = await query_member(guild, parse_tag(a))
+        b = await query_member(guild, parse_tag(b))
         a_id = uid_from_discord(a.id)
         b_id = uid_from_discord(b.id)
         past_matches.append((a_id, b_id))
