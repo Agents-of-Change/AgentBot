@@ -180,7 +180,7 @@ async def roll_one_on_ones(ctx):
             + " ".join(mention(i) for i in fetch_many_discord_ids(unmatched)),
         ]
     write_matches(matches)
-    await ctx.send_response("\n".join(msg), allowed_mentions=discord.AllowedMentions(users=False))
+    await ctx.send_response("\n".join(msg))
 
 
 bot.run(TOKEN)
