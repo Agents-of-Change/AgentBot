@@ -137,7 +137,7 @@ def fetch_many_discord_ids(uids):
     out = []
     for i in uids:
         cur = db.cursor()
-        db.execute("SELECT discordId FROM users WHERE id = ?", (i, ))
+        cur.execute("SELECT discordId FROM users WHERE id = ?", (i, ))
         r = cur.fetchone()
         if r is None:
             raise AssertionError(f"Invalid UID: {i}")
