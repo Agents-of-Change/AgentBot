@@ -182,7 +182,7 @@ async def roll_one_on_ones(ctx):
     write_matches(matches)
     await ctx.send_response("\n".join(msg))
 
-@bot.user_command(guild_ids=[GUILD_ID])
+@bot.user_command(name="Jump to Introduction", guild_ids=[GUILD_ID])
 async def jump_to_introduction(ctx, member):
     await ctx.respond(f"Hello world! <@{member.id}>")
 
