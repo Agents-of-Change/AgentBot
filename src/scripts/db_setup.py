@@ -16,6 +16,7 @@ db.execute(
     """
 CREATE TABLE past_matches (
   id INTEGER PRIMARY KEY,
+  date text default (strftime('%Y-%m-%d', 'now')),
   personA INTEGER NOT NULL,
   personB INTEGER NOT NULL,
 
