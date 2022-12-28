@@ -9,6 +9,7 @@ if DB_FILENAME == ":memory:":
 # discordId1,discordId2;discordId3,discordId4
 incompatibilities = os.environ["INCOMPATIBILITIES"]
 INCOMPATIBILITIES = []
-for pair in incompatibilities.split(";"):
-    a, b = map(int, pair.split(","))
-    INCOMPATIBILITIES.append((a, b))
+if INCOMPATIBILITIES:
+    for pair in incompatibilities.split(";"):
+        a, b = map(int, pair.split(","))
+        INCOMPATIBILITIES.append((a, b))
