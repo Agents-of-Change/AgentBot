@@ -19,14 +19,14 @@ def parse_tag(tag):
     if not tag.startswith("@"):
         raise AssertionError()
     tag = tag[1:]
-    name, discrim = tag.split("#")
-    return name, int(discrim)
+    name, _, _ = tag.partition("#")
+    return name
 
-async def query_member(guild, name, discrim):
+async def query_member(guild, name):
     members = await guild.query_members(name)
-    members = [m for m in members if m.name == name and m.discriminator == discrim]
+    members = [m for m in members if m.name == name]
     if len(members) != 1:
-        raise AssertionError(f"Cannot find member for {name}#{discrim}")
+        raise AssertionError(f"Cannot find member for {name}")
     return members[0]
 
 def uid_from_discord(discord_id):
