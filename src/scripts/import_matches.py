@@ -36,8 +36,8 @@ def uid_from_discord(discord_id):
     if r is None:
         db.execute("INSERT INTO users (discordId, matchable) VALUES (?, TRUE)", (str(discord_id), ))
         db.commit()
-    (r, ) = r
-    return r
+        return uid_from_discord(discord_id)
+    return r[0]
 
 async def main():
     guild = [i for i in client.guilds if i.id == GUILD_ID][0]
