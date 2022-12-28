@@ -1,5 +1,5 @@
 import discord
-from config import TOKEN, GUILD_ID, INCOMPATIBILITIES
+from config import ADMIN_ROLE_ID, TOKEN, GUILD_ID, INCOMPATIBILITIES
 from db import sqlite3, db
 from collections import defaultdict
 import random
@@ -155,9 +155,8 @@ def matches_with_discord_ids(matches):
     return [(uid_to_discord_id[a], uid_to_discord_id[b]) for a, b in matches]
 
 
-async def can_roll_one_on_ones(author):
-    # TODO: Role check
-    return True
+def can_roll_one_on_ones(author):
+    return any(r.id == ADMIN_ROLE_ID for r in author.roles)
 
 
 def mention(discord_id):
@@ -166,6 +165,10 @@ def mention(discord_id):
 
 @bot.slash_command(guild_ids=[GUILD_ID])
 async def roll_one_on_ones(ctx):
+    if not can_roll_one_on_ones(ctx.author):
+        await ctx.respond("You do not have the required role")
+        return
+
     matches, unmatched = generate_matches()
     discord_matches = matches_with_discord_ids(matches)
     msg = ["New pairings!", ""]
