@@ -32,10 +32,11 @@ async def query_member(guild, name):
 def uid_from_discord(discord_id):
     cur = db.cursor()
     cur.execute("SELECT id FROM users WHERE discordId = ? LIMIT 1", (str(discord_id), ))
-    (r, ) = cur.fetchone()
+    r = cur.fetchone()
     if r is None:
         db.execute("INSERT INTO users (discordId, matchable) VALUES (?, TRUE)", (str(discord_id), ))
         db.commit()
+    (r, ) = r
     return r
 
 async def main():
