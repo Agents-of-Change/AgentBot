@@ -31,14 +31,14 @@ async def query_member(guild, name):
 
 def uid_from_discord(discord_id):
     cur = db.cursor()
-    db.execute("SELECT id FROM users WHERE discordId = ? LIMIT 1", (str(discord_id), ))
+    cur.execute("SELECT id FROM users WHERE discordId = ? LIMIT 1", (str(discord_id), ))
     r = cur.fetchone()
     if r is None:
-        raise AssertionError(f"discord ID {discord_id} is not unique")
+        db.execute("INSERT INTO users (discordId, matchable) VALUES (?, TRUE)", (str(discord_id), ))
+        db.commit()
     return r
 
 async def main():
-    discord_ids = []
     guild = [i for i in client.guilds if i.id == GUILD_ID][0]
     past_matches = []
 
