@@ -3,11 +3,13 @@ from config import ADMIN_ROLE_ID, TOKEN, GUILD_ID, INCOMPATIBILITIES
 from db import sqlite3, db
 from collections import defaultdict
 import random
+import functools
 
 intents = discord.Intents.default()
 # intents.message_content = True
 
 bot = discord.Bot(intents=intents)
+guild_slash_command = functools.partial(bot.slash_command, guild_ids=[GUILD_ID])
 
 
 @bot.event
@@ -15,7 +17,7 @@ async def on_ready():
     print(f"We have logged in as {bot.user}")
 
 
-@bot.slash_command(guild_ids=[GUILD_ID])
+@guild_slash_command
 async def hello(ctx):
     await ctx.respond("Hello!")
 
@@ -155,20 +157,25 @@ def matches_with_discord_ids(matches):
     return [(uid_to_discord_id[a], uid_to_discord_id[b]) for a, b in matches]
 
 
-def can_roll_one_on_ones(author):
+def is_admin(author):
     return any(r.id == ADMIN_ROLE_ID for r in author.roles)
 
 
 def mention(discord_id):
     return f"<@{discord_id}>"
 
+def admin_only(func):
+    @functools.wraps(func)
+    async def decorated(ctx, *args, **kwargs):
+        if not is_admin(ctx.author):
+            await ctx.respond("You do not have the required role")
+            return
+        return func(*args, **kwargs)
+    return decorated
 
-@bot.slash_command(guild_ids=[GUILD_ID])
+@guild_slash_command
+@admin_only
 async def roll_one_on_ones(ctx):
-    if not can_roll_one_on_ones(ctx.author):
-        await ctx.respond("You do not have the required role")
-        return
-
     matches, unmatched = generate_matches()
     discord_matches = matches_with_discord_ids(matches)
     msg = ["New pairings!", ""]
