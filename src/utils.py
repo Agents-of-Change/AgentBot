@@ -1,6 +1,6 @@
 import discord
 import functools
-from config import ADMIN_ROLE_ID
+from config import ADMIN_ROLE_ID, GUILD_ID
 
 intents = discord.Intents.default()
 # intents.message_content = True
@@ -22,6 +22,6 @@ def admin_only(func):
         if not is_admin(ctx.author):
             await ctx.respond("You do not have the required role")
             return
-        return func(*args, **kwargs)
+        return await func(ctx, *args, **kwargs)
 
     return decorated

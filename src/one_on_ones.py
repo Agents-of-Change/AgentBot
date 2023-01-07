@@ -30,7 +30,7 @@ async def one_on_ones_leave(ctx):
     await ctx.respond("You are no longer signed up for one-on-ones")
 
 
-@guild_slash_command
+@guild_slash_command()
 async def one_on_ones(
     ctx,
     action: discord.Option(
@@ -140,7 +140,7 @@ def matches_with_discord_ids(matches):
     return [(uid_to_discord_id[a], uid_to_discord_id[b]) for a, b in matches]
 
 
-@guild_slash_command
+@guild_slash_command()
 @admin_only
 async def roll_one_on_ones(ctx):
     matches, unmatched = generate_matches()
