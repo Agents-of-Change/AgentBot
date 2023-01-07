@@ -22,6 +22,7 @@ def parse_tag(tag):
     name, _, _ = tag.partition("#")
     return name
 
+
 async def query_member(guild, name):
     members = await guild.query_members(name)
     members = [m for m in members if m.name == name]
@@ -29,15 +30,20 @@ async def query_member(guild, name):
         raise AssertionError(f"Cannot find member for {name}")
     return members[0]
 
+
 def uid_from_discord(discord_id):
     cur = db.cursor()
-    cur.execute("SELECT id FROM users WHERE discordId = ? LIMIT 1", (str(discord_id), ))
+    cur.execute("SELECT id FROM users WHERE discordId = ? LIMIT 1", (str(discord_id),))
     r = cur.fetchone()
     if r is None:
-        db.execute("INSERT INTO users (discordId, matchable) VALUES (?, TRUE)", (str(discord_id), ))
+        db.execute(
+            "INSERT INTO users (discordId, matchable) VALUES (?, TRUE)",
+            (str(discord_id),),
+        )
         db.commit()
         return uid_from_discord(discord_id)
     return r[0]
+
 
 async def main():
     guild = [i for i in client.guilds if i.id == GUILD_ID][0]
@@ -53,9 +59,12 @@ async def main():
         past_matches.append((a_id, b_id))
 
     print("Writing to DB...")
-    db.executemany("INSERT INTO past_matches (personA, personB) VALUES (?, ?)", past_matches)
+    db.executemany(
+        "INSERT INTO past_matches (personA, personB) VALUES (?, ?)", past_matches
+    )
     db.commit()
     print("Done!")
+
 
 @client.event
 async def on_ready():
