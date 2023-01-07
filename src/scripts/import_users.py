@@ -23,7 +23,7 @@ async def main():
         tag = tag.strip()
         print(f"Processing: {tag!r}")
         name, discrim = tag.split("#")
-        members = await guild.query_members(name)
+        members = await guild.query_members(name, limit=1)
         members = [m for m in members if m.name == name and m.discriminator == discrim]
         if len(members) != 1:
             raise AssertionError(f"Cannot find member for tag: {tag!r}")

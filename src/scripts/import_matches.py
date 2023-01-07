@@ -24,7 +24,7 @@ def parse_tag(tag):
 
 
 async def query_member(guild, name):
-    members = await guild.query_members(name)
+    members = await guild.query_members(name, limit=1)
     members = [m for m in members if m.name == name]
     if len(members) != 1:
         raise AssertionError(f"Cannot find member for {name}")
