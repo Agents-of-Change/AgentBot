@@ -3,6 +3,7 @@ from collections import defaultdict
 import random
 from utils import *
 from config import INCOMPATIBILITIES
+import enum
 
 
 async def one_on_ones_join(ctx):
@@ -212,5 +213,91 @@ async def record_manual_pair(
     write_matches([(user_a_id, user_b_id)])
     await ctx.send_response(
         f":white_check_mark: Sucessfully paired {mention(user_a_discord)}{user_a_msg} and {mention(user_b_discord)}{user_b_msg}",
+        allowed_mentions=discord.AllowedMentions.none(),
+    )
+
+
+@enum.unique
+class ArrowDirection(enum.Enum):
+    LEFT = "◀".strip()
+    RIGHT = "▶".strip()
+
+    def page_offset(self):
+        if self == self.LEFT:
+            return -1
+        if self == self.RIGHT:
+            return 1
+        raise AssertionError()
+
+
+class ArrowButton(discord.ui.Button):
+    @staticmethod
+    def gen_custom_id(direction: ArrowDirection, page: int):
+        return ",".join(map(str, (direction.value, page)))
+
+    @staticmethod
+    def parse_custom_id(custom_id: str):
+        adir, page = custom_id.split(",")
+        return ArrowDirection(adir), int(page)
+
+    def __init__(self, direction: ArrowDirection, page: int, **kwargs):
+        super().__init__(
+            label=direction.value,
+            custom_id=self.gen_custom_id(direction, page),
+            **kwargs,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        arrow_dir, page = self.parse_custom_id(interaction.custom_id)
+        page += arrow_dir.page_offset()
+        await interaction.edit_original_response(
+            content=matches_page_msg(page),
+            view=matches_page_view(page),
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+
+
+def last_matches_paginated(page):
+    limit = 10
+    offset = limit * page
+    cur = db.cursor()
+    cur.execute(
+        """
+            SELECT
+                m.id, date, uA.discordId, uB.discordId
+            FROM past_matches m
+            LEFT JOIN users uA ON uA.id = m.personA
+            LEFT JOIN users uB ON uB.id = m.personB
+            ORDER BY date, m.id DESC
+            LIMIT ?
+            OFFSET ?
+        """,
+        (limit, offset),
+    )
+    return cur.fetchall()
+
+
+def matches_page_msg(page):
+    lines = []
+    for mid, date, person_a_discord, person_b_discord in last_matches_paginated(page):
+        lines.append(
+            f"{mid} {date} {mention(person_a_discord)} <-> {mention(person_b_discord)}"
+        )
+    return "\n".join(lines)
+
+
+def matches_page_view(page):
+    view = discord.ui.View()
+    for i in ArrowDirection:
+        view.add_item(ArrowButton(i, page))
+    return view
+
+
+@guild_slash_command(description="List previous 1-1 pairings")
+async def paging_test(ctx):
+    page = 0
+    return await ctx.respond(
+        matches_page_msg(page),
+        view=matches_page_view(page),
         allowed_mentions=discord.AllowedMentions.none(),
     )
