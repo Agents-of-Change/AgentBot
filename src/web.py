@@ -1,15 +1,15 @@
 from aiohttp import web
-
-from aiohttp import web
+from pathlib import Path
 from config import HOST, PORT
 
 app = web.Application()
 routes = web.RouteTableDef()
+static_dir = Path(__file__).parent / "static"
 
 
 @routes.get("/")
 async def hello(req):
-    return web.Response(text="Hello, world!")
+    return web.FileResponse(static_dir / "index.html")
 
 
 async def start_app():
