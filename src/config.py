@@ -14,3 +14,6 @@ if INCOMPATIBILITIES:
     for pair in incompatibilities.split(";"):
         a, b = map(int, pair.split(","))
         INCOMPATIBILITIES.append((a, b))
+
+HOST = os.environ.get("HOST", "localhost")
+PORT = int(os.environ.get("PORT", 8080))
