@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 .direnv
 
-*.sqlite
 *.sqlite3
+*.sqlite3-journal
