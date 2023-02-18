@@ -4,6 +4,8 @@ import random
 from utils import *
 from config import INCOMPATIBILITIES
 import enum
+import math
+import asyncio
 
 
 async def one_on_ones_join(ctx):
@@ -86,33 +88,44 @@ def matches_for_user(past_matches, incompatibilities, matchable_ids, person_id):
 
 
 def generate_matches():
+    seed = math.floor(asyncio.get_event_loop().time()) % 1000
+    r = random.Random(seed)
     past_matches = index_past_matches()
     incompatibilities = index_incompatibilities()
     cur = db.cursor()
     cur.execute("SELECT id FROM users WHERE matchable = TRUE")
     matchable_ids = [i[0] for i in cur.fetchall()]
     # This might help avoid the same people not getting picked every time
-    random.shuffle(matchable_ids)
+    matches_by_len = defaultdict(lambda: [])
+    for uid in matchable_ids:
+        user_matches = matches_for_user(
+            past_matches, incompatibilities, matchable_ids, uid
+        )
+        matches_by_len[len(user_matches)].append((uid, user_matches))
+
+    for matches_len, users in matches_by_len.items():
+        matches_by_len[matches_len] = r.sample(users, len(users))
+
+    user_matches = []
+    for k, users in sorted(matches_by_len.items(), key=lambda i: i[0]):
+        user_matches += users
 
     matches = []
     unmatched = []
     matched = set()
-    for uid in matchable_ids:
+    for uid, possible_matches in user_matches:
         if uid in matched:
             continue
-        possible_matches = matches_for_user(
-            past_matches, incompatibilities, matchable_ids, uid
-        )
         possible_matches -= matched  # remove all items in matched from the set
         possible_matches = list(possible_matches)
         if not possible_matches:
             unmatched.append(uid)
             continue
-        match = random.choice(possible_matches)
+        match = r.choice(possible_matches)
         matches.append((uid, match))
         matched.add(uid)
         matched.add(match)
-    return matches, unmatched
+    return seed, matches, unmatched
 
 
 def write_matches(matches):
@@ -171,9 +184,9 @@ def matches_with_discord_ids(matches):
 @guild_slash_command()
 @admin_only
 async def roll_one_on_ones(ctx):
-    matches, unmatched = generate_matches()
+    seed, matches, unmatched = generate_matches()
     discord_matches = matches_with_discord_ids(matches)
-    msg = ["New pairings!", ""]
+    msg = [f"New pairings! RNG seed: {seed}", ""]
     msg += [mention(a) + " <-> " + mention(b) for a, b in discord_matches]
     if unmatched:
         msg += [
