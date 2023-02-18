@@ -116,7 +116,16 @@ def generate_matches():
 
 
 def write_matches(matches):
-    db.executemany("INSERT INTO past_matches (personA, personB) VALUES (?, ?)", matches)
+    db.executemany(
+        """
+            INSERT INTO
+                past_matches (date, personA, personB)
+            VALUES (
+                strftime('%Y-%m-%d', 'now'), ?, ?
+            )
+        """,
+        matches,
+    )
     db.commit()
 
 
