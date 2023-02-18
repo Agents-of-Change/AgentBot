@@ -231,6 +231,61 @@ async def record_manual_pair(
     )
 
 
+@guild_slash_command(description="")
+@admin_only
+async def unrecord_pair(
+    ctx,
+    user_a: discord.Option(input_type=discord.SlashCommandOptionType.user),
+    user_b: discord.Option(input_type=discord.SlashCommandOptionType.user),
+):
+    user_a_discord, user_b_discord = map(id_from_mention, (user_a, user_b))
+    try:
+        user_a_id = fetch_user_id(user_a_discord)
+    except NotRegisteredError:
+        return await ctx.send_response(
+            f"{user_a} has never registered for one_on_ones",
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+    try:
+        user_b_id = fetch_user_id(user_b_discord)
+    except NotRegisteredError:
+        return await ctx.send_response(
+            f"{user_a} has never registered for one_on_ones",
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+    cur = db.cursor()
+    cur.execute(
+        """
+            SELECT
+                id, date
+            FROM past_matches
+            WHERE
+                (personA = ? AND personB = ?) OR (personA = ? AND personB = ?)
+            ORDER BY date DESC, id DESC
+            LIMIT 1
+        """,
+        (user_a_id, user_b_id, user_b_id, user_a_id),
+    )
+    r = cur.fetchone()
+    if r is None:
+        return await ctx.send_response(
+            f"{user_a} and {user_b} never matched",
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+    m_id, date = r
+    # fine with this being destructive because it can be easily re-created
+    db.execute(
+        """
+            DELETE FROM past_matches WHERE id = ?
+        """,
+        (m_id,),
+    )
+    return await ctx.send_response(
+        f"Match ID {m_id} on {date} between {user_a} and {user_b} has been deleted.",
+        allowed_mentions=discord.AllowedMentions.none(),
+    )
+
+
 @enum.unique
 class ArrowDirection(enum.Enum):
     LEFT = "◀".strip()
