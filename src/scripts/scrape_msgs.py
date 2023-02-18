@@ -75,6 +75,7 @@ async def main():
             if str(channel.id) not in counts_json:
                 pbar.write(f"Skipping channel {channel.name} ({channel.id})")
                 continue
+            pbar.write(f"Processing channel {channel.name} ({channel.id})")
             pbar.set_postfix(channel=channel.name)
             cur = db.cursor()
             cur.execute(
