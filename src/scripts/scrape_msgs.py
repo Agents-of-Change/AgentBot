@@ -78,10 +78,10 @@ async def main():
             pbar.set_postfix(channel=channel.name)
             cur = db.cursor()
             cur.execute(
-                "INSERT INTO channels (discordId, name) VALUES (?, ?) RETURNING id",
+                "INSERT INTO channels (discordId, name) VALUES (?, ?)",
                 (channel.id, channel.name),
             )
-            (cid,) = cur.fetchone()
+            cid = cur.lastrowid
             db.commit()
             msgs = []
             async for msg in channel.history():
