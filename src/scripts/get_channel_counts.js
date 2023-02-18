@@ -5,9 +5,10 @@
  */
 
 (async function () {
+  const guildId = "GUILD_ID_HERE";
   async function countMsgs(cid) {
     const r = await fetch(
-      `https://discord.com/api/v9/guilds/1014436790251290624/messages/search?channel_id=${cid}`,
+      `https://discord.com/api/v9/guilds/${guildId}/messages/search?channel_id=${cid}`,
       { headers: { authorization: "TOKEN_HERE" } }
     );
     if (r.status != 200) throw new Error("status " + r.status);
@@ -27,7 +28,7 @@
       r[cid] = count;
     } catch (e) {
       // ignore errors because I kept getting 403 errors from channels the bot has
-      //  access to but my account doesn't
+      //  access to but my account doesn't or non-text channels
       console.error(e);
     }
     await sleep(500);
