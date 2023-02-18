@@ -80,7 +80,8 @@ def matches_for_user(past_matches, incompatibilities, matchable_ids, person_id):
         for uid in matchable_ids
         if uid != person_id and not incompatibilities[person_id][uid]
     ]
-    min_past_matches = min(past_matches[person_id][uid] for uid in r)
+    user_past_matches = [past_matches[person_id][uid] for uid in r]
+    min_past_matches = min(user_past_matches) if len(user_past_matches) else 0
     return set(uid for uid in r if past_matches[person_id][uid] <= min_past_matches)
 
 
