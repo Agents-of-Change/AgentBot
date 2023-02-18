@@ -57,20 +57,40 @@ def index_past_matches():
     return past_matches
 
 
-def discord_id_to_uid(discord_id):
+class NotRegisteredError(Exception):
+    pass
+
+
+def fetch_discord_id(uid):
     cur = db.cursor()
-    cur.execute("SELECT id FROM users WHERE discordId = ?", (str(discord_id),))
+    cur.execute("SELECT discordId FROM users WHERE id = ?", (uid,))
     r = cur.fetchone()
     if r is None:
-        raise AssertionError(f"No user with discordId {discord_id!r}")
+        raise NotRegisteredError(f"UID is not registered: {uid}")
+    return r[0]
+
+
+def fetch_many_discord_ids(uids):
+    out = []
+    for i in uids:
+        out.append(fetch_discord_id(i))
+    return out
+
+
+def fetch_user_id(disc_id):
+    cur = db.cursor()
+    cur.execute("SELECT id FROM users WHERE discordId = ?", (str(disc_id),))
+    r = cur.fetchone()
+    if r is None:
+        raise NotRegisteredError(f"Discord ID is not registered: {disc_id}")
     return r[0]
 
 
 def index_incompatibilities():
     incompatibilites = defaultdict(lambda: defaultdict(lambda: False))
     for a, b in INCOMPATIBILITIES:
-        a = discord_id_to_uid(a)
-        b = discord_id_to_uid(b)
+        a = fetch_user_id(a)
+        b = fetch_user_id(b)
         incompatibilites[a][b] = True
         incompatibilites[b][a] = True
     return incompatibilites
@@ -140,35 +160,6 @@ def write_matches(matches):
         matches,
     )
     db.commit()
-
-
-class NotRegisteredError(Exception):
-    pass
-
-
-def fetch_discord_id(uid):
-    cur = db.cursor()
-    cur.execute("SELECT discordId FROM users WHERE id = ?", (uid,))
-    r = cur.fetchone()
-    if r is None:
-        raise NotRegisteredError(f"UID is not registered: {uid}")
-    return r[0]
-
-
-def fetch_many_discord_ids(uids):
-    out = []
-    for i in uids:
-        out.append(fetch_discord_id(i))
-    return out
-
-
-def fetch_user_id(disc_id):
-    cur = db.cursor()
-    cur.execute("SELECT id FROM users WHERE discordId = ?", (str(disc_id),))
-    r = cur.fetchone()
-    if r is None:
-        raise NotRegisteredError(f"Discord ID is not registered: {disc_id}")
-    return r[0]
 
 
 def matches_with_discord_ids(matches):
