@@ -19,7 +19,7 @@ async def main():
     channels = await guild.fetch_channels()
     print(f"...fetched {len(channels)} channels")
     c = channels[0]
-    print(json.dumps([c.id for c in channels]))
+    print(json.dumps([str(c.id) for c in channels]))
 
 
 main_started = False
