@@ -72,9 +72,9 @@ async def main():
     print(f"...fetched {len(channels)} channels")
     with tqdm(total=sum(counts_json.values())) as pbar:
         for channel in channels:
-            # if str(channel.id) not in counts_json:
-            #    pbar.write(f"Skipping channel {channel.name} ({channel.id})")
-            #    continue
+            if not isinstance(channel, discord.abc.Messageable):
+                pbar.write(f"Skipping channel {channel.name} ({channel.id})")
+                continue
             pbar.write(f"Processing channel {channel.name} ({channel.id})")
             pbar.set_postfix(channel=channel.name)
             cur = db.cursor()
