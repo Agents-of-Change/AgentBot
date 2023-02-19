@@ -67,49 +67,67 @@ async def count_messages(chan: discord.TextChannel):
     return r["total_results"]
 
 
+def write_msgs(pbar, msgs):
+    db.executemany(
+        """
+        INSERT INTO
+            messages (channelId, threadId, discordId, authorDiscordId, content)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        msgs,
+    )
+    db.commit()
+    pbar.write(f"Wrote {len(msgs)} msgs")
+
+
+async def proc_thread(pbar: tqdm, thread: discord.Thread):
+    msgs = []
+    async for msg in thread.history(limit=None):
+        msgs.append((thread.parent.id, thread.id, msg.id, msg.author.id, msg.content))
+        pbar.update(1)
+    write_msgs(msgs)
+
+
+async def proc_channel(pbar: tqdm, channel: discord.VoiceChannel | discord.TextChannel):
+    if not isinstance(channel, discord.abc.Messageable):
+        pbar.write(f"Skipping channel {channel.name} ({channel.id})")
+        return
+    pbar.write(f"Processing channel {channel.name} ({channel.id})")
+    pbar.set_postfix(channel=channel.name)
+    cur = db.cursor()
+    cur.execute(
+        "INSERT INTO channels (discordId, name) VALUES (?, ?)",
+        (channel.id, channel.name),
+    )
+    cid = cur.lastrowid
+    db.commit()
+    msgs = []
+    try:
+        async for msg in channel.history(limit=None):
+            msgs.append((cid, None, msg.id, msg.author.id, msg.content))
+            pbar.update(1)
+        async for thread in channel.archived_threads(limit=None):
+            await proc_thread(pbar, thread)
+    except discord.errors.Forbidden as e:
+        pbar.write(f"Forbidden: {e!r}")
+    except AttributeError as e:
+        if str(e) != "'VoiceChannel' object has no attribute 'archived_threads'":
+            raise e
+    write_msgs(msgs)
+
+
 async def main():
     print("Fetching guild...")
     guild = await client.fetch_guild(guild_id)
     print("Fetching channels...")
     channels = await guild.fetch_channels()
-    print(f"...fetched {len(channels)} channels")
+    threads = await guild.active_threads()
+    print(f"...fetched {len(channels)} channels, {len(threads)} active threads")
     with tqdm(total=sum(counts_json.values())) as pbar:
+        for thread in threads:
+            await proc_thread(pbar, thread)
         for channel in channels:
-            if not isinstance(channel, discord.abc.Messageable):
-                pbar.write(f"Skipping channel {channel.name} ({channel.id})")
-                continue
-            pbar.write(f"Processing channel {channel.name} ({channel.id})")
-            pbar.set_postfix(channel=channel.name)
-            cur = db.cursor()
-            cur.execute(
-                "INSERT INTO channels (discordId, name) VALUES (?, ?)",
-                (channel.id, channel.name),
-            )
-            cid = cur.lastrowid
-            db.commit()
-            msgs = []
-            try:
-                async for msg in channel.history(limit=None):
-                    msgs.append((cid, None, msg.id, msg.author.id, msg.content))
-                    pbar.update(1)
-                async for thread in channel.archived_threads(limit=None):
-                    async for msg in thread.history(limit=None):
-                        msgs.append(
-                            (cid, thread.id, msg.id, msg.author.id, msg.content)
-                        )
-                        pbar.update(1)
-            except discord.errors.Forbidden as e:
-                pbar.write(f"Forbidden: {e!r}")
-            db.executemany(
-                """
-                INSERT INTO
-                    messages (channelId, threadId, discordId, authorDiscordId, content)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                msgs,
-            )
-            db.commit()
-            pbar.write(f"Wrote {len(msgs)} msgs")
+            await proc_channel(pbar, channel)
     print("Done!")
 
 
