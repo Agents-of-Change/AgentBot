@@ -85,7 +85,7 @@ async def proc_thread(pbar: tqdm, thread: discord.Thread):
     async for msg in thread.history(limit=None):
         msgs.append((thread.parent_id, thread.id, msg.id, msg.author.id, msg.content))
         pbar.update(1)
-    write_msgs(msgs)
+    write_msgs(pbar, msgs)
 
 
 async def proc_channel(pbar: tqdm, channel: discord.TextChannel):
@@ -113,7 +113,7 @@ async def proc_channel(pbar: tqdm, channel: discord.TextChannel):
     except AttributeError as e:
         if str(e) != "'VoiceChannel' object has no attribute 'archived_threads'":
             raise e
-    write_msgs(msgs)
+    write_msgs(pbar, msgs)
 
 
 async def main():
