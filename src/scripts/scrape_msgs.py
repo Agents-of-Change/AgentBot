@@ -11,7 +11,7 @@ from hack_path import hack_path
 hack_path()
 from config import TOKEN
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 client = discord.Client()
 _, guild_id, counts_json, db_filename = sys.argv
 guild_id = int(guild_id)
