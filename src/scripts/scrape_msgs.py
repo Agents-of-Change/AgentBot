@@ -88,7 +88,7 @@ async def proc_thread(pbar: tqdm, thread: discord.Thread):
     write_msgs(msgs)
 
 
-async def proc_channel(pbar: tqdm, channel: discord.VoiceChannel | discord.TextChannel):
+async def proc_channel(pbar: tqdm, channel: discord.TextChannel):
     if not isinstance(channel, discord.abc.Messageable):
         pbar.write(f"Skipping channel {channel.name} ({channel.id})")
         return
