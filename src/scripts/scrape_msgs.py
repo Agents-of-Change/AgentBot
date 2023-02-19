@@ -80,10 +80,10 @@ def write_msgs(pbar, msgs):
     pbar.write(f"Wrote {len(msgs)} msgs")
 
 
-async def proc_thread(pbar: tqdm, thread: discord.Thread):
+async def proc_thread(pbar: tqdm, cid: int, thread: discord.Thread):
     msgs = []
     async for msg in thread.history(limit=None):
-        msgs.append((thread.parent_id, thread.id, msg.id, msg.author.id, msg.content))
+        msgs.append((cid, thread.id, msg.id, msg.author.id, msg.content))
         pbar.update(1)
     write_msgs(pbar, msgs)
 
@@ -107,7 +107,7 @@ async def proc_channel(pbar: tqdm, channel: discord.TextChannel):
             msgs.append((cid, None, msg.id, msg.author.id, msg.content))
             pbar.update(1)
         async for thread in channel.archived_threads(limit=None):
-            await proc_thread(pbar, thread)
+            await proc_thread(pbar, cid, thread)
     except discord.errors.Forbidden as e:
         pbar.write(f"Forbidden: {e!r}")
     except AttributeError as e:
@@ -127,7 +127,12 @@ async def main():
         for channel in channels:
             await proc_channel(pbar, channel)
         for thread in threads:
-            await proc_thread(pbar, thread)
+            cur = db.cursor()
+            cur.execute(
+                "SELECT id FROM channels WHERE discordId = ?", (thread.parent_id,)
+            )
+            (cid,) = cur.fetchone()
+            await proc_thread(pbar, cid, thread)
     print("Done!")
 
 
