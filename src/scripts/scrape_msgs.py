@@ -34,6 +34,7 @@ db.execute(
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         channelId INTEGER NOT NULL,
+        threadId INTEGER,
         discordId TEXT NOT NULL UNIQUE,
         authorDiscordId TEXT NOT NULL,
         content TEXT,
@@ -89,14 +90,20 @@ async def main():
             msgs = []
             try:
                 async for msg in channel.history(limit=None):
-                    msgs.append((cid, msg.id, msg.author.id, msg.content))
+                    msgs.append((cid, None, msg.id, msg.author.id, msg.content))
                     pbar.update(1)
+                async for thread in channel.archived_threads(limit=None):
+                    async for msg in thread.history(limit=None):
+                        msgs.append(
+                            (cid, thread.id, msg.id, msg.author.id, msg.content)
+                        )
+                        pbar.update(1)
             except discord.errors.Forbidden as e:
                 pbar.write(f"Forbidden: {e!r}")
             db.executemany(
                 """
                 INSERT INTO
-                    messages (channelId, discordId, authorDiscordId, content)
+                    messages (channelId, threadId, discordId, authorDiscordId, content)
                 VALUES (?, ?, ?, ?)
                 """,
                 msgs,
