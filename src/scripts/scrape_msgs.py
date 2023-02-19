@@ -12,7 +12,9 @@ hack_path()
 from config import TOKEN
 
 logging.basicConfig(level=logging.INFO)
-client = discord.Client(intents=discord.Intents.message_content)
+intents = discord.Intents.default()
+intents.message_content = True
+client = discord.Client(intents=intents)
 _, guild_id, counts_json, db_filename = sys.argv
 guild_id = int(guild_id)
 with open(counts_json, "rb") as f:
