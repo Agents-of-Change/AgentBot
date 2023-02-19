@@ -55,18 +55,6 @@ async def scrape_channel():
     pass
 
 
-async def count_messages(chan: discord.TextChannel):
-    params = {"channel_id": chan.id}
-    r = await chan._state.http.request(
-        discord.Route(
-            "GET",
-            "/guilds/{guild_id}/messages/search",
-            guild_id=chan.guild.id,
-        )
-    )
-    return r["total_results"]
-
-
 def write_msgs(pbar, msgs):
     db.executemany(
         """
