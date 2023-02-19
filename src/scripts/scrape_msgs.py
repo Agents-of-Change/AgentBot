@@ -1,5 +1,6 @@
 import sys
 import sqlite3
+import logging
 
 import discord
 from tqdm import tqdm
@@ -10,6 +11,7 @@ from hack_path import hack_path
 hack_path()
 from config import TOKEN
 
+logging.basicConfig(level=logging.DEBUG)
 client = discord.Client()
 _, guild_id, counts_json, db_filename = sys.argv
 guild_id = int(guild_id)
@@ -100,6 +102,7 @@ async def main():
                 msgs,
             )
             db.commit()
+            pbar.write(f"Wrote {len(msgs)} msgs")
     print("Done!")
 
 
