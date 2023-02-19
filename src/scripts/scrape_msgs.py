@@ -85,9 +85,12 @@ async def main():
             cid = cur.lastrowid
             db.commit()
             msgs = []
-            async for msg in channel.history(limit=None):
-                msgs.append((cid, msg.id, msg.author.id, msg.content))
-                pbar.update(1)
+            try:
+                async for msg in channel.history(limit=None):
+                    msgs.append((cid, msg.id, msg.author.id, msg.content))
+                    pbar.update(1)
+            except discord.errors.Forbidden as e:
+                pbar.write(f"Forbidden: {e!r}")
             db.executemany(
                 """
                 INSERT INTO
