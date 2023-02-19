@@ -104,7 +104,7 @@ async def main():
                 """
                 INSERT INTO
                     messages (channelId, threadId, discordId, authorDiscordId, content)
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 msgs,
             )
