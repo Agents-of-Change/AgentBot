@@ -83,7 +83,7 @@ def write_msgs(pbar, msgs):
 async def proc_thread(pbar: tqdm, thread: discord.Thread):
     msgs = []
     async for msg in thread.history(limit=None):
-        msgs.append((thread.parent.id, thread.id, msg.id, msg.author.id, msg.content))
+        msgs.append((thread.parent_id, thread.id, msg.id, msg.author.id, msg.content))
         pbar.update(1)
     write_msgs(msgs)
 
