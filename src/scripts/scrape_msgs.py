@@ -124,10 +124,10 @@ async def main():
     threads = await guild.active_threads()
     print(f"...fetched {len(channels)} channels, {len(threads)} active threads")
     with tqdm(total=sum(counts_json.values())) as pbar:
-        for thread in threads:
-            await proc_thread(pbar, thread)
         for channel in channels:
             await proc_channel(pbar, channel)
+        for thread in threads:
+            await proc_thread(pbar, thread)
     print("Done!")
 
 
