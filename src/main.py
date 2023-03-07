@@ -7,15 +7,7 @@ from utils import *
 from one_on_ones import *
 
 
-logging.basicConfig(level=logging.DEBUG)
-logging.getLogger("discord.gateway").setLevel(logging.INFO)
-
-import time, signal, faulthandler
-def handler(signum, frame):
-    print('##########', time.time())
-    faulthandler.dump_traceback()
-
-signal.signal(signal.SIGALRM, handler)
+logging.basicConfig(level=logging.INFO)
 
 @bot.event
 async def on_ready():
