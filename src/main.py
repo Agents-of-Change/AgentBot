@@ -1,3 +1,4 @@
+import logging
 from sqlite3 import OperationalError
 import asyncio
 from web import start_app
@@ -6,9 +7,18 @@ from utils import *
 from one_on_ones import *
 
 
+logging.basicConfig(level=logging.INFO)
+
 @bot.event
 async def on_ready():
     print(f"We have logged in as {bot.user}")
+
+@bot.event
+async def on_connect():
+    try:
+        await bot.sync_commands()
+    except Exception:
+        logging.exception("Error while syncing commands")
 
 
 @guild_slash_command()

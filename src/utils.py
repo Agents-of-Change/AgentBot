@@ -5,7 +5,7 @@ from config import ADMIN_ROLE_ID, GUILD_ID
 
 intents = discord.Intents.default()
 # intents.message_content = True
-bot = discord.Bot(intents=intents)
+bot = discord.Bot(intents=intents, auto_sync_commands=False)
 guild_slash_command = functools.partial(bot.slash_command, guild_ids=[GUILD_ID])
 
 
