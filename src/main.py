@@ -53,5 +53,4 @@ async def main():
 
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
-    asyncio.ensure_future(main(), loop=loop)
-    loop.run_forever()
+    loop.run_until_complete(main())
