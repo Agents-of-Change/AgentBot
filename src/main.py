@@ -16,7 +16,9 @@ async def on_ready():
 @bot.event
 async def on_connect():
     try:
+        print("Syncing commands...")
         await bot.sync_commands()
+        print("Sync done")
     except Exception:
         logging.exception("Error while syncing commands")
 
