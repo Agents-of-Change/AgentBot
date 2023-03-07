@@ -7,7 +7,7 @@ from utils import *
 from one_on_ones import *
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 @bot.event
 async def on_ready():
