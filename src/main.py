@@ -10,6 +10,13 @@ from one_on_ones import *
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger("discord.gateway").setLevel(logging.INFO)
 
+import time, signal, traceback
+def handler(signum, frame):
+    print('##########', time.time())
+    traceback.print_stack()
+
+signal.signal(signal.SIGALRM, handler)
+
 @bot.event
 async def on_ready():
     print(f"We have logged in as {bot.user}")
