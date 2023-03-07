@@ -10,10 +10,10 @@ from one_on_ones import *
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger("discord.gateway").setLevel(logging.INFO)
 
-import time, signal, traceback
+import time, signal, faulthandler
 def handler(signum, frame):
     print('##########', time.time())
-    traceback.print_stack()
+    faulthandler.dump_traceback()
 
 signal.signal(signal.SIGALRM, handler)
 
