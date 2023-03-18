@@ -54,8 +54,8 @@ db.execute(
         authorDiscordId TEXT NOT NULL,
         content TEXT,
 
-        FOREIGN KEY (channelId)
-            REFERENCES channels (id)
+        FOREIGN KEY (threadId)
+            REFERENCES threads (id)
     )
     """
 )
