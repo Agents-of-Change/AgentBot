@@ -1,6 +1,7 @@
 import sys
 import sqlite3
 import logging
+import traceback
 
 import discord
 from tqdm import tqdm
@@ -62,7 +63,6 @@ db.commit()
 
 
 def commit_writes(pbar, msgs, authors):
-    print([i for i in msgs if len(i) != 4][:5])
     db.executemany(
         """
         INSERT INTO
@@ -153,7 +153,7 @@ async def proc_channel(
     except AttributeError as e:
         if str(e) != "'VoiceChannel' object has no attribute 'archived_threads'":
             raise e
-    commit_writes(pbar, authors, msgs)
+    commit_writes(pbar, msgs, authors)
 
 
 async def main():
@@ -182,6 +182,8 @@ async def on_connect():
         main_started = True
         try:
             await main()
+        except Exception:
+            traceback.print_exc()
         finally:
             await client.close()
 
