@@ -82,7 +82,9 @@ def commit_writes(pbar, msgs, authors):
     pbar.write(f"Wrote {len(msgs)} msgs, {len(authors)} authors")
 
 
-async def proc_thread(pbar: tqdm, seen_authors, thread: discord.Thread):
+async def proc_thread(
+    pbar: tqdm, seen_authors, guild: discord.Guild, thread: discord.Thread
+):
     cur = db.cursor()
     cur.execute(
         "INSERT INTO threads (discordId, channelDiscordId, name) VALUES (?, ?, ?)",
@@ -148,7 +150,7 @@ async def proc_channel(
             msgs.append((cid, msg.id, msg.author.id, msg.content))
             pbar.update(1)
         async for thread in channel.archived_threads(limit=None):
-            await proc_thread(pbar, seen_authors, thread)
+            await proc_thread(pbar, seen_authors, guild, thread)
     except discord.errors.Forbidden as e:
         pbar.write(f"Forbidden: {e!r}")
     except AttributeError as e:
@@ -167,9 +169,9 @@ async def main():
     authors = set()
     with tqdm(total=sum(counts_json.values())) as pbar:
         for channel in channels:
-            await proc_channel(pbar, authors, channel)
+            await proc_channel(pbar, authors, guild, channel)
         for thread in threads:
-            await proc_thread(pbar, authors, thread)
+            await proc_thread(pbar, authors, guild, thread)
     print("Done!")
 
 
