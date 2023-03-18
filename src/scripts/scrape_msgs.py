@@ -86,16 +86,17 @@ async def add_author(seen_authors, authors, guild, msg: discord.Message):
     if msg.author.id not in seen_authors:
         seen_authors.add(msg.author.id)
         a = msg.author
+        nick = None
         if not isinstance(a, discord.Member):
-            a.nick = None
             try:
                 a = await guild.fetch_member(a.id)
+                nick = a.nick
             except discord.errors.NotFound:
                 pass
         authors.append(
             (
                 a.id,
-                a.nick,
+                nick,
                 a.name,
                 a.discriminator,
                 a.display_avatar.url,
