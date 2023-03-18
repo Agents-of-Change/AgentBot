@@ -82,6 +82,27 @@ def commit_writes(pbar, msgs, authors):
     pbar.write(f"Wrote {len(msgs)} msgs, {len(authors)} authors")
 
 
+async def add_author(seen_authors, authors, guild, msg: discord.Message):
+    if msg.author.id not in seen_authors:
+        seen_authors.add(msg.author.id)
+        a = msg.author
+        if not isinstance(a, discord.Member):
+            a.nick = None
+            try:
+                a = await guild.fetch_member(a.id)
+            except discord.errors.NotFound:
+                pass
+        authors.append(
+            (
+                a.id,
+                a.nick,
+                a.name,
+                a.discriminator,
+                a.display_avatar.url,
+            )
+        )
+
+
 async def proc_thread(
     pbar: tqdm, seen_authors, guild: discord.Guild, thread: discord.Thread
 ):
@@ -95,20 +116,7 @@ async def proc_thread(
     msgs = []
     authors = []
     async for msg in thread.history(limit=None):
-        if msg.author.id not in seen_authors:
-            seen_authors.add(msg.author.id)
-            a = msg.author
-            if not isinstance(a, discord.Member):
-                a = await guild.fetch_member(a.id)
-            authors.append(
-                (
-                    a.id,
-                    a.nick,
-                    a.name,
-                    a.discriminator,
-                    a.display_avatar.url,
-                )
-            )
+        await add_author(seen_authors, authors, guild, msg)
         msgs.append((tid, msg.id, msg.author.id, msg.content))
         pbar.update(1)
     commit_writes(pbar, msgs, authors)
@@ -133,20 +141,7 @@ async def proc_channel(
     authors = []
     try:
         async for msg in channel.history(limit=None):
-            if msg.author.id not in seen_authors:
-                seen_authors.add(msg.author.id)
-                a = msg.author
-                if not isinstance(a, discord.Member):
-                    a = await guild.fetch_member(a.id)
-                authors.append(
-                    (
-                        a.id,
-                        a.nick,
-                        a.name,
-                        a.discriminator,
-                        a.display_avatar.url,
-                    )
-                )
+            await add_author(seen_authors, authors, guild, msg)
             msgs.append((cid, msg.id, msg.author.id, msg.content))
             pbar.update(1)
         async for thread in channel.archived_threads(limit=None):
