@@ -66,7 +66,7 @@ def commit_writes(pbar, msgs, authors):
         """
         INSERT INTO
             messages (threadId, discordId, authorDiscordId, content)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?)
         """,
         msgs,
     )
