@@ -24,10 +24,23 @@ db = sqlite3.connect(db_filename)
 db.execute("PRAGMA foreign_keys = ON;")
 db.execute(
     """
-    CREATE TABLE IF NOT EXISTS channels (
+    CREATE TABLE IF NOT EXISTS threads (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        discordId TEXT NOT NULL UNIQUE,
+        discordId TEXT UNIQUE,
+        channelDiscordId TEXT NOT NULL,
         name TEXT NOT NULL
+    )
+    """
+)
+db.execute(
+    """
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        discordId TEXT UNIQUE,
+        nickname TEXT,
+        username TEXT NOT NULL,
+        discriminator TEXT NOT NULL,
+        profileUrl TEXT NOT NULL,
     )
     """
 )
@@ -35,8 +48,7 @@ db.execute(
     """
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        channelId INTEGER NOT NULL,
-        threadId INTEGER,
+        threadId INTEGER NOT NULL,
         discordId TEXT NOT NULL UNIQUE,
         authorDiscordId TEXT NOT NULL,
         content TEXT,
@@ -49,36 +61,55 @@ db.execute(
 db.commit()
 
 
-def should_scrape_channel():
-    return True
-
-
-async def scrape_channel():
-    pass
-
-
-def write_msgs(pbar, msgs):
+def commit_writes(pbar, msgs, authors):
     db.executemany(
         """
         INSERT INTO
-            messages (channelId, threadId, discordId, authorDiscordId, content)
+            messages (threadId, discordId, authorDiscordId, content)
         VALUES (?, ?, ?, ?, ?)
         """,
         msgs,
     )
+    db.executemany(
+        """
+        INSERT INTO
+            users (discordId, nickname, username, discriminator, profileUrl)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        authors,
+    )
     db.commit()
-    pbar.write(f"Wrote {len(msgs)} msgs")
+    pbar.write(f"Wrote {len(msgs)} msgs, {len(authors)} authors")
 
 
-async def proc_thread(pbar: tqdm, cid: int, thread: discord.Thread):
+async def proc_thread(pbar: tqdm, seen_authors, thread: discord.Thread):
+    cur = db.cursor()
+    cur.execute(
+        "INSERT INTO threads (discordId, channelDiscordId, name) VALUES (?, ?, ?)",
+        (thread.id, thread.parent_id, thread.name),
+    )
+    tid = cur.lastrowid
+    db.commit()
     msgs = []
+    authors = []
     async for msg in thread.history(limit=None):
-        msgs.append((cid, thread.id, msg.id, msg.author.id, msg.content))
+        if msg.author.id not in seen_authors:
+            seen_authors.add(msg.author.id)
+            authors.append(
+                (
+                    msg.author.id,
+                    msg.author.nick,
+                    msg.author.name,
+                    msg.author.discriminator,
+                    msg.author.display_avatar.url,
+                )
+            )
+        msgs.append((tid, msg.id, msg.author.id, msg.content))
         pbar.update(1)
-    write_msgs(pbar, msgs)
+    commit_writes(pbar, msgs, authors)
 
 
-async def proc_channel(pbar: tqdm, channel: discord.TextChannel):
+async def proc_channel(pbar: tqdm, seen_authors, channel: discord.TextChannel):
     if not isinstance(channel, discord.abc.Messageable):
         pbar.write(f"Skipping channel {channel.name} ({channel.id})")
         return
@@ -86,24 +117,36 @@ async def proc_channel(pbar: tqdm, channel: discord.TextChannel):
     pbar.set_postfix(channel=channel.name)
     cur = db.cursor()
     cur.execute(
-        "INSERT INTO channels (discordId, name) VALUES (?, ?)",
-        (channel.id, channel.name),
+        "INSERT INTO threads (discordId, channelDiscordId, name) VALUES (?, ?)",
+        (None, channel.id, channel.name),
     )
     cid = cur.lastrowid
     db.commit()
     msgs = []
+    authors = []
     try:
         async for msg in channel.history(limit=None):
-            msgs.append((cid, None, msg.id, msg.author.id, msg.content))
+            if msg.author.id not in seen_authors:
+                seen_authors.add(msg.author.id)
+                authors.append(
+                    (
+                        msg.author.id,
+                        msg.author.nick,
+                        msg.author.name,
+                        msg.author.discriminator,
+                        msg.author.display_avatar.url,
+                    )
+                )
+            msgs.append((cid, msg.id, msg.author.id, msg.content))
             pbar.update(1)
         async for thread in channel.archived_threads(limit=None):
-            await proc_thread(pbar, cid, thread)
+            await proc_thread(pbar, seen_authors, thread)
     except discord.errors.Forbidden as e:
         pbar.write(f"Forbidden: {e!r}")
     except AttributeError as e:
         if str(e) != "'VoiceChannel' object has no attribute 'archived_threads'":
             raise e
-    write_msgs(pbar, msgs)
+    commit_writes(pbar, authors, msgs)
 
 
 async def main():
@@ -113,16 +156,12 @@ async def main():
     channels = await guild.fetch_channels()
     threads = await guild.active_threads()
     print(f"...fetched {len(channels)} channels, {len(threads)} active threads")
+    authors = set()
     with tqdm(total=sum(counts_json.values())) as pbar:
         for channel in channels:
-            await proc_channel(pbar, channel)
+            await proc_channel(pbar, authors, channel)
         for thread in threads:
-            cur = db.cursor()
-            cur.execute(
-                "SELECT id FROM channels WHERE discordId = ?", (thread.parent_id,)
-            )
-            (cid,) = cur.fetchone()
-            await proc_thread(pbar, cid, thread)
+            await proc_thread(pbar, authors, thread)
     print("Done!")
 
 
