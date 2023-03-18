@@ -40,7 +40,7 @@ db.execute(
         nickname TEXT,
         username TEXT NOT NULL,
         discriminator TEXT NOT NULL,
-        profileUrl TEXT NOT NULL,
+        profileUrl TEXT NOT NULL
     )
     """
 )
