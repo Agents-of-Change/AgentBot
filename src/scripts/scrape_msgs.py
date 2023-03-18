@@ -95,13 +95,16 @@ async def proc_thread(pbar: tqdm, seen_authors, thread: discord.Thread):
     async for msg in thread.history(limit=None):
         if msg.author.id not in seen_authors:
             seen_authors.add(msg.author.id)
+            a = msg.author
+            if not isinstance(a, discord.Member):
+                a = await guild.fetch_member(a.id)
             authors.append(
                 (
-                    msg.author.id,
-                    msg.author.nick,
-                    msg.author.name,
-                    msg.author.discriminator,
-                    msg.author.display_avatar.url,
+                    a.id,
+                    a.nick,
+                    a.name,
+                    a.discriminator,
+                    a.display_avatar.url,
                 )
             )
         msgs.append((tid, msg.id, msg.author.id, msg.content))
@@ -109,7 +112,9 @@ async def proc_thread(pbar: tqdm, seen_authors, thread: discord.Thread):
     commit_writes(pbar, msgs, authors)
 
 
-async def proc_channel(pbar: tqdm, seen_authors, channel: discord.TextChannel):
+async def proc_channel(
+    pbar: tqdm, seen_authors, guild: discord.Guild, channel: discord.TextChannel
+):
     if not isinstance(channel, discord.abc.Messageable):
         pbar.write(f"Skipping channel {channel.name} ({channel.id})")
         return
@@ -128,13 +133,16 @@ async def proc_channel(pbar: tqdm, seen_authors, channel: discord.TextChannel):
         async for msg in channel.history(limit=None):
             if msg.author.id not in seen_authors:
                 seen_authors.add(msg.author.id)
+                a = msg.author
+                if not isinstance(a, discord.Member):
+                    a = await guild.fetch_member(a.id)
                 authors.append(
                     (
-                        msg.author.id,
-                        msg.author.nick,
-                        msg.author.name,
-                        msg.author.discriminator,
-                        msg.author.display_avatar.url,
+                        a.id,
+                        a.nick,
+                        a.name,
+                        a.discriminator,
+                        a.display_avatar.url,
                     )
                 )
             msgs.append((cid, msg.id, msg.author.id, msg.content))
