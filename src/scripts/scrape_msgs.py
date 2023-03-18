@@ -117,7 +117,7 @@ async def proc_channel(pbar: tqdm, seen_authors, channel: discord.TextChannel):
     pbar.set_postfix(channel=channel.name)
     cur = db.cursor()
     cur.execute(
-        "INSERT INTO threads (discordId, channelDiscordId, name) VALUES (?, ?)",
+        "INSERT INTO threads (discordId, channelDiscordId, name) VALUES (?, ?, ?)",
         (None, channel.id, channel.name),
     )
     cid = cur.lastrowid
