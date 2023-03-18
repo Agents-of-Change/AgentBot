@@ -62,6 +62,7 @@ db.commit()
 
 
 def commit_writes(pbar, msgs, authors):
+    print([i for i in msgs if len(i) != 4][:5])
     db.executemany(
         """
         INSERT INTO
