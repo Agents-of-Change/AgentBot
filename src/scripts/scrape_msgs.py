@@ -28,7 +28,7 @@ db.execute(
     CREATE TABLE IF NOT EXISTS threads (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         discordId TEXT UNIQUE,
-        channelDiscordId TEXT NOT NULL UNIQUE,
+        channelDiscordId TEXT NOT NULL,
         name TEXT NOT NULL
     )
     """
