@@ -179,8 +179,10 @@ async def on_connect():
     global main_started
     if not main_started:
         main_started = True
-        await main()
-        await client.close()
+        try:
+            await main()
+        finally:
+            await client.close()
 
 
 if __name__ == "__main__":
