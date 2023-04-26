@@ -25,9 +25,9 @@ db = sqlite3.connect(db_filename)
 db.execute("PRAGMA foreign_keys = ON;")
 db.execute(
     """
-    CREATE TABLE IF NOT EXISTS threads (
+    CREATE TABLE IF NOT EXISTS channels (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        discordId TEXT UNIQUE,
+        threadDiscordId TEXT UNIQUE,
         channelDiscordId TEXT NOT NULL,
         name TEXT NOT NULL
     )
@@ -49,13 +49,13 @@ db.execute(
     """
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        threadId INTEGER NOT NULL,
+        channelId INTEGER NOT NULL,
         discordId TEXT NOT NULL UNIQUE,
         authorDiscordId TEXT NOT NULL,
         content TEXT,
 
-        FOREIGN KEY (threadId)
-            REFERENCES threads (id)
+        FOREIGN KEY (channelId)
+            REFERENCES channels (id)
     )
     """
 )
@@ -66,7 +66,7 @@ def commit_writes(pbar, msgs, authors):
     db.executemany(
         """
         INSERT INTO
-            messages (threadId, discordId, authorDiscordId, content)
+            messages (channelId, discordId, authorDiscordId, content)
         VALUES (?, ?, ?, ?)
         """,
         msgs,
@@ -110,7 +110,7 @@ async def proc_thread(
 ):
     cur = db.cursor()
     cur.execute(
-        "INSERT INTO threads (discordId, channelDiscordId, name) VALUES (?, ?, ?)",
+        "INSERT INTO channels (threadDiscordId, channelDiscordId, name) VALUES (?, ?, ?)",
         (thread.id, thread.parent_id, thread.name),
     )
     tid = cur.lastrowid
@@ -134,8 +134,8 @@ async def proc_channel(
     pbar.set_postfix(channel=channel.name)
     cur = db.cursor()
     cur.execute(
-        "INSERT INTO threads (discordId, channelDiscordId, name) VALUES (?, ?, ?)",
-        (None, channel.id, channel.name),
+        "INSERT INTO channels (threadDiscordId, channelDiscordId, name) VALUES (NULL, ?, ?)",
+        (channel.id, channel.name),
     )
     cid = cur.lastrowid
     db.commit()
