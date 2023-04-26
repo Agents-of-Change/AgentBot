@@ -143,6 +143,8 @@ async def proc_channel(
     authors = []
     try:
         async for msg in channel.history(limit=None):
+            if msg.type not in {discord.MessageType.default, discord.MessageType.reply}:
+                continue
             await add_author(seen_authors, authors, guild, msg)
             msgs.append((cid, msg.id, msg.author.id, msg.content))
             pbar.update(1)
