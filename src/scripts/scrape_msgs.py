@@ -118,6 +118,8 @@ async def proc_thread(
     msgs = []
     authors = []
     async for msg in thread.history(limit=None):
+        if msg.type not in {discord.MessageType.default, discord.MessageType.reply}:
+            continue
         await add_author(seen_authors, authors, guild, msg)
         msgs.append((tid, msg.id, msg.author.id, msg.content))
         pbar.update(1)
