@@ -5,6 +5,7 @@ from web import start_app
 from config import TOKEN, GUILD_ID
 from utils import *
 from one_on_ones import *
+import discord
 
 
 logging.basicConfig(level=logging.INFO)
@@ -30,7 +31,20 @@ async def hello(ctx):
 
 @bot.user_command(name="Jump to Introduction", guild_ids=[GUILD_ID])
 async def jump_to_introduction(ctx, member):
-    await ctx.respond(f"Hello world! <@{member.id}>")
+    channel_id = 1021569666398826586  # Replace with the ID of the #introductions channel
+    channel = bot.get_channel(channel_id)
+
+    introduction_message = await channel.history(limit=None, oldest_first=True).find(
+        lambda m: m.author == member and m.channel.type == discord.ChannelType.text
+    )
+
+    if introduction_message:
+        response = f"{member.mention}'s introduction: {introduction_message.jump_url}"
+    else:
+        response = f"{member.mention} has not posted an introduction message"
+
+    await ctx.response.send_message(response, ephemeral=True)
+
 
 
 def check_db_conn():
