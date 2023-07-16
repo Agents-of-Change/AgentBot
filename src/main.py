@@ -31,7 +31,6 @@ async def background(every=10):
         db.executemany("DELETE FROM timed_roles WHERE id = ?", ((_id,) for _id, _ in res))
 
 
-
 @bot.event
 async def on_ready():
     print(f"We have logged in as {bot.user}")
@@ -58,17 +57,32 @@ async def lockout(ctx, duration: str):
     # Give them the lockout role
     await ctx.user.add_roles(ctx.guild.get_role(LOCKOUT_ROLE_ID))
 
+    try:
+        dur = parse_duration(duration)
+        if dur < 10:
+            raise ValueError("Duration must be at least 10 seconds")
+        if dur > 60*60*24*7:
+            raise ValueError("Duration must be less than 7 days")
+    except ValueError as e:
+        await ctx.respond(f"Error: {e}")
+        return
+
+    lockout_end = int(time.time()) + dur
+
     # Add the date for removing the role based on the time they specify to the db
     try:
-        lockout_end = int(time.time()) + parse_duration(duration)
-        db.execute(
-            "INSERT INTO timed_roles (user_id, role_id, remove_role_at) VALUES (?, ?, ?)",
+        id = db.execute(
+            """
+            INSERT INTO timed_roles (user_id, role_id, remove_role_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(user_id)
+            DO UPDATE SET remove_role_at=MAX(excluded.remove_role_at, remove_role_at);
+            """,
             (ctx.user.id, LOCKOUT_ROLE_ID, lockout_end),
-        )
-        await ctx.respond(
-            f"Gave you the lockout role! You will be able to chat again <t:{lockout_end}:R>"
-        )
-    except ValueError as e:
+        ).lastrowid
+        lockout_end, = db.execute("SELECT remove_role_at FROM timed_roles WHERE id = ?", (id,)).fetchone()
+        await ctx.respond(f"You will be able to chat again <t:{lockout_end}:R>")
+    except Exception as e:
         await ctx.respond(f"Error: {e}")
 
 
