@@ -28,7 +28,8 @@ async def background(every=10):
             user = await guild.fetch_member(user_id)
             await user.remove_roles(guild.get_role(role_id))
 
-        db.execute("DELETE FROM timed_roles WHERE id IN (" + ','.join('?' for _ in res) + ")", [_id for _id, _ in res])
+        db.executemany("DELETE FROM timed_roles WHERE id = ?", ((_id,) for _id, _ in res))
+
 
 
 @bot.event
