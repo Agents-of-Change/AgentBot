@@ -2,17 +2,41 @@ import logging
 from sqlite3 import OperationalError
 import asyncio
 from web import start_app
-from config import TOKEN, GUILD_ID
+from config import TOKEN, GUILD_ID, LOCKOUT_ROLE_ID
 from utils import *
 from one_on_ones import *
+import time
+import asyncio
 import discord
 
-
 logging.basicConfig(level=logging.INFO)
+
+
+async def background(every=10):
+    await bot.wait_until_ready()
+    while True:
+        await asyncio.sleep(every)
+        res = db.execute(
+            "SELECT id, user_id, role_id FROM timed_roles WHERE role_id = ? AND remove_role_at < ?",
+            (
+                LOCKOUT_ROLE_ID,
+                int(time.time()),
+            ),
+        )
+        for _, user_id, role_id in res:
+            guild = bot.get_guild(GUILD_ID)
+            user = await guild.fetch_member(user_id)
+            await user.remove_roles(guild.get_role(role_id))
+
+        db.executemany("DELETE FROM timed_roles WHERE id = ?", ((_id,) for _id, _ in res))
+
+
 
 @bot.event
 async def on_ready():
     print(f"We have logged in as {bot.user}")
+    asyncio.create_task(background())
+
 
 @bot.event
 async def on_connect():
@@ -29,9 +53,29 @@ async def hello(ctx):
     await ctx.respond("Hello!")
 
 
+@guild_slash_command()
+async def lockout(ctx, duration: str):
+    # Give them the lockout role
+    await ctx.user.add_roles(ctx.guild.get_role(LOCKOUT_ROLE_ID))
+
+    # Add the date for removing the role based on the time they specify to the db
+    try:
+        lockout_end = int(time.time()) + parse_duration(duration)
+        db.execute(
+            "INSERT INTO timed_roles (user_id, role_id, remove_role_at) VALUES (?, ?, ?)",
+            (ctx.user.id, LOCKOUT_ROLE_ID, lockout_end),
+        )
+        await ctx.respond(
+            f"Gave you the lockout role! You will be able to chat again <t:{lockout_end}:R>"
+        )
+    except ValueError as e:
+        await ctx.respond(f"Error: {e}")
+
+
 @bot.user_command(name="Jump to Introduction", guild_ids=[GUILD_ID])
 async def jump_to_introduction(ctx, member):
-    channel_id = 1021569666398826586  # Replace with the ID of the #introductions channel
+    # Replace with the ID of the #introductions channel
+    channel_id = 1021569666398826586
     channel = bot.get_channel(channel_id)
 
     introduction_message = await channel.history(limit=None, oldest_first=True).find(
@@ -44,7 +88,6 @@ async def jump_to_introduction(ctx, member):
         response = f"{member.mention} has not posted an introduction message"
 
     await ctx.response.send_message(response, ephemeral=True)
-
 
 
 def check_db_conn():

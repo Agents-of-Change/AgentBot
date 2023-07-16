@@ -33,3 +33,14 @@ def id_from_mention(mention):
     if m is None:
         raise ValueError(f"Value is not a mention: {mention!r}")
     return int(m.group(1))
+
+
+def parse_duration(dur: str):
+    "Parse a duration of the form 1h 2m 3s into a number of seconds"
+    try:
+        return sum(
+            int(s[:-1]) * {"h": 60 * 60, "m": 60, "s": 1}[s[-1]]
+            for s in dur.lower().split()
+        )
+    except Exception as e:
+        raise ValueError(f"Invalid duration: {dur!r}. Format is 1h 20m 30s.") from e
