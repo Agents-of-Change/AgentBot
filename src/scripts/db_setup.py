@@ -34,7 +34,8 @@ CREATE TABLE timed_roles  (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     role_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    remove_role_at INTEGER NOT NULL
+    remove_role_at INTEGER NOT NULL,
+    UNIQUE(user_id)
 )
 """
 )
