@@ -28,7 +28,9 @@ async def background(every=10):
             user = await guild.fetch_member(user_id)
             await user.remove_roles(guild.get_role(role_id))
 
-        db.executemany("DELETE FROM timed_roles WHERE id = ?", ((_id,) for _id, _ in res))
+        db.executemany(
+            "DELETE FROM timed_roles WHERE id = ?", ((_id,) for _id, _ in res)
+        )
 
 
 @bot.event
@@ -61,7 +63,7 @@ async def lockout(ctx, duration: str):
         dur = parse_duration(duration)
         if dur < 10:
             raise ValueError("Duration must be at least 10 seconds")
-        if dur > 60*60*24*7:
+        if dur > 60 * 60 * 24 * 7:
             raise ValueError("Duration must be less than 7 days")
     except ValueError as e:
         await ctx.respond(f"Error: {e}")
@@ -80,7 +82,9 @@ async def lockout(ctx, duration: str):
             """,
             (ctx.user.id, LOCKOUT_ROLE_ID, lockout_end),
         ).lastrowid
-        lockout_end, = db.execute("SELECT remove_role_at FROM timed_roles WHERE id = ?", (id,)).fetchone()
+        (lockout_end,) = db.execute(
+            "SELECT remove_role_at FROM timed_roles WHERE id = ?", (id,)
+        ).fetchone()
         await ctx.respond(f"You will be able to chat again <t:{lockout_end}:R>")
     except Exception as e:
         await ctx.respond(f"Error: {e}")

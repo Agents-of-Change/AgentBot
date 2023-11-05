@@ -1,4 +1,4 @@
-from db import sqlite3, db
+from db import db
 from collections import defaultdict
 import random
 from utils import *
