@@ -357,10 +357,10 @@ async def paging_test(
     pages = []
     for start_i in range(0, len(matches), 15):
         lines = [
-            f"#{mid}: {mention(discord_a)} <-> {mention(discord_b)}"
-            for mid, date, discord_a, discord_b in matches[start_i : start_i + 15]
+            f"{i + 1}. {mention(discord_a)} <-> {mention(discord_b)} (#{mid})"
+            for i, (mid, date, discord_a, discord_b) in enumerate(matches[start_i : start_i + 15])
         ]
-        pages.append(Page(content="\n".join(lines)))
+        pages.append(Page(embeds=[discord.Embed(title="1-on-1s history", description="\n".join(lines))]))
     paginator = Paginator(pages=pages)
     await paginator.respond(
         ctx.interaction,
