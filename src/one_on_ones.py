@@ -185,7 +185,8 @@ async def roll_one_on_ones(ctx):
             "Unmatched: "
             + " ".join(mention(i) for i in fetch_many_discord_ids(unmatched)),
         ]
-    write_matches(matches)
+    # Don't record matches yet, let them be manually recorded.
+    # write_matches(matches)
     await ctx.send_response("\n".join(msg))
 
 
@@ -201,15 +202,21 @@ def auto_register_user(disc_id):
 
 
 @guild_slash_command(
-    description="Record a 1-1 pairing manually. Invalid users will be automatically registered with matchable=False."
+    description="Record a 1-on-1 pairing. Invalid users will be automatically registered with matchable=False."
 )
-@admin_only
-async def record_manual_pair(
+async def record_pair(
     ctx,
     user_a: discord.Option(input_type=discord.SlashCommandOptionType.user),
     user_b: discord.Option(input_type=discord.SlashCommandOptionType.user),
 ):
     user_a_discord, user_b_discord = map(id_from_mention, (user_a, user_b))
+    if not any(
+        (ctx.author.id == user_a_discord, ctx.author.id == user_b_discord, is_admin())
+    ):
+        return await ctx.respond(
+            "You must be an admin to record a match that does not involve you"
+        )
+
     db_ids = []
     msgs = []
     for disc_id in (user_a_discord, user_b_discord):
@@ -226,19 +233,25 @@ async def record_manual_pair(
     user_a_msg, user_b_msg = msgs
     write_matches([(user_a_id, user_b_id)])
     await ctx.send_response(
-        f":white_check_mark: Sucessfully paired {mention(user_a_discord)}{user_a_msg} and {mention(user_b_discord)}{user_b_msg}",
+        f":writing_hand: Recorded pair between {mention(user_a_discord)}{user_a_msg} and {mention(user_b_discord)}{user_b_msg}",
         allowed_mentions=discord.AllowedMentions.none(),
     )
 
 
 @guild_slash_command(description="")
-@admin_only
 async def unrecord_pair(
     ctx,
     user_a: discord.Option(input_type=discord.SlashCommandOptionType.user),
     user_b: discord.Option(input_type=discord.SlashCommandOptionType.user),
 ):
     user_a_discord, user_b_discord = map(id_from_mention, (user_a, user_b))
+    if not any(
+        (ctx.author.id == user_a_discord, ctx.author.id == user_b_discord, is_admin())
+    ):
+        return await ctx.respond(
+            "You must be an admin to unrecord a match that does not involve you"
+        )
+
     try:
         user_a_id = fetch_user_id(user_a_discord)
     except NotRegisteredError:
@@ -250,9 +263,10 @@ async def unrecord_pair(
         user_b_id = fetch_user_id(user_b_discord)
     except NotRegisteredError:
         return await ctx.send_response(
-            f"{user_a} has never registered for one_on_ones",
+            f"{user_b} has never registered for one_on_ones",
             allowed_mentions=discord.AllowedMentions.none(),
         )
+
     cur = db.cursor()
     cur.execute(
         """
@@ -281,7 +295,7 @@ async def unrecord_pair(
         (m_id,),
     )
     return await ctx.send_response(
-        f"Match ID {m_id} on {date} between {user_a} and {user_b} has been deleted.",
+        f"Pairing ID {m_id} on {date} between {user_a} and {user_b} has been deleted.",
         allowed_mentions=discord.AllowedMentions.none(),
     )
 
