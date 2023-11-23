@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.8"
 py-cord = "^2.3.2"
+aiohttp = "^3.8.6"
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.12.0"

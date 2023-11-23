@@ -1,6 +1,8 @@
 from db import db
 from collections import defaultdict
 import random
+import discord
+from discord.ext.pages import Paginator, Page
 from utils import *
 from config import INCOMPATIBILITIES
 import enum
@@ -211,7 +213,11 @@ async def record_pair(
 ):
     user_a_discord, user_b_discord = map(id_from_mention, (user_a, user_b))
     if not any(
-        (ctx.author.id == user_a_discord, ctx.author.id == user_b_discord, is_admin())
+        (
+            ctx.author.id == user_a_discord,
+            ctx.author.id == user_b_discord,
+            is_admin(ctx.author),
+        )
     ):
         return await ctx.respond(
             "You must be an admin to record a match that does not involve you"
@@ -241,103 +247,58 @@ async def record_pair(
 @guild_slash_command(description="")
 async def unrecord_pair(
     ctx,
-    user_a: discord.Option(input_type=discord.SlashCommandOptionType.user),
-    user_b: discord.Option(input_type=discord.SlashCommandOptionType.user),
+    match_id: discord.Option(
+        description="ID from match history",
+        input_type=discord.SlashCommandOptionType.integer,
+    ),
 ):
-    user_a_discord, user_b_discord = map(id_from_mention, (user_a, user_b))
-    if not any(
-        (ctx.author.id == user_a_discord, ctx.author.id == user_b_discord, is_admin())
-    ):
-        return await ctx.respond(
-            "You must be an admin to unrecord a match that does not involve you"
-        )
-
     try:
-        user_a_id = fetch_user_id(user_a_discord)
-    except NotRegisteredError:
-        return await ctx.send_response(
-            f"{user_a} has never registered for one_on_ones",
-            allowed_mentions=discord.AllowedMentions.none(),
-        )
-    try:
-        user_b_id = fetch_user_id(user_b_discord)
-    except NotRegisteredError:
-        return await ctx.send_response(
-            f"{user_b} has never registered for one_on_ones",
-            allowed_mentions=discord.AllowedMentions.none(),
-        )
+        match_id = int(match_id)
+    except ValueError:
+        return await ctx.respond("ID is not a valid integer", ephemeral=True)
 
-    cur = db.cursor()
-    cur.execute(
+    cur = db.execute(
         """
-            SELECT
-                id, date
-            FROM past_matches
-            WHERE
-                (personA = ? AND personB = ?) OR (personA = ? AND personB = ?)
-            ORDER BY date DESC, id DESC
-            LIMIT 1
+        SELECT
+            date, uA.id, uA.discordId, uB.id, uB.discordId
+        FROM past_matches m
+        LEFT JOIN users uA ON m.personA = uA.id
+        LEFT JOIN users uB ON m.personB = uB.id
+        WHERE m.id = ?
         """,
-        (user_a_id, user_b_id, user_b_id, user_a_id),
+        (match_id,),
     )
     r = cur.fetchone()
     if r is None:
-        return await ctx.send_response(
-            f"{user_a} and {user_b} never matched",
-            allowed_mentions=discord.AllowedMentions.none(),
+        return await ctx.respond("Cannot find a match with that ID", ephemeral=True)
+    date, user_a_id, user_a_discord, user_b_id, user_b_discord = r
+    user_a_discord, user_b_discord = map(int, (user_a_discord, user_b_discord))
+
+    if not any(
+        (
+            ctx.author.id == user_a_discord,
+            ctx.author.id == user_b_discord,
+            is_admin(ctx.author),
         )
-    m_id, date = r
+    ):
+        return await ctx.respond(
+            "You must be an admin to unrecord a match that does not involve you. "
+            + f"(You are trying to remove a match between {mention(user_a_discord)} and {mention(user_b_discord)})",
+            allowed_mentions=discord.AllowedMentions.none(),
+            ephemeral=True,
+        )
+
     # fine with this being destructive because it can be easily re-created
     db.execute(
         """
             DELETE FROM past_matches WHERE id = ?
         """,
-        (m_id,),
+        (match_id,),
     )
     return await ctx.send_response(
-        f"Pairing ID {m_id} on {date} between {user_a} and {user_b} has been deleted.",
+        f"Pairing ID {match_id} on {date} between {mention(user_a_discord)} and {mention(user_b_discord)} has been deleted.",
         allowed_mentions=discord.AllowedMentions.none(),
     )
-
-
-@enum.unique
-class ArrowDirection(enum.Enum):
-    LEFT = "◀".strip()
-    RIGHT = "▶".strip()
-
-    def page_offset(self):
-        if self == self.LEFT:
-            return -1
-        if self == self.RIGHT:
-            return 1
-        raise AssertionError()
-
-
-class ArrowButton(discord.ui.Button):
-    @staticmethod
-    def gen_custom_id(direction: ArrowDirection, page: int):
-        return ",".join(map(str, (direction.value, page)))
-
-    @staticmethod
-    def parse_custom_id(custom_id: str):
-        adir, page = custom_id.split(",")
-        return ArrowDirection(adir), int(page)
-
-    def __init__(self, direction: ArrowDirection, page: int, **kwargs):
-        super().__init__(
-            label=direction.value,
-            custom_id=self.gen_custom_id(direction, page),
-            **kwargs,
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        arrow_dir, page = self.parse_custom_id(interaction.custom_id)
-        page += arrow_dir.page_offset()
-        await interaction.edit_original_response(
-            content=matches_page_msg(page),
-            view=matches_page_view(page),
-            allowed_mentions=discord.AllowedMentions.none(),
-        )
 
 
 def last_matches_paginated(page):
@@ -360,27 +321,55 @@ def last_matches_paginated(page):
     return cur.fetchall()
 
 
-def matches_page_msg(page):
-    lines = []
-    for mid, date, person_a_discord, person_b_discord in last_matches_paginated(page):
-        lines.append(
-            f"{mid} {date} {mention(person_a_discord)} <-> {mention(person_b_discord)}"
-        )
-    return "\n".join(lines)
-
-
-def matches_page_view(page):
-    view = discord.ui.View()
-    for i in ArrowDirection:
-        view.add_item(ArrowButton(i, page))
-    return view
-
-
 @guild_slash_command(description="List previous 1-1 pairings")
-async def paging_test(ctx):
-    page = 0
-    return await ctx.respond(
-        matches_page_msg(page),
-        view=matches_page_view(page),
-        allowed_mentions=discord.AllowedMentions.none(),
+async def match_history(
+    ctx: discord.context.ApplicationContext,
+    user: discord.Option(
+        input_type=discord.SlashCommandOptionType.user, required=False
+    ),
+):
+    if user:
+        user_discord = id_from_mention(user)
+    else:
+        user_discord = ctx.author.id
+    try:
+        user_id = fetch_user_id(user_discord)
+    except NotRegisteredError:
+        return await ctx.send_response(
+            f"{user} is not signed up for 1-on-1s",
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+
+    cur = db.execute(
+        """
+        SELECT
+            m.id, date, uA.discordId, uB.discordId
+        FROM past_matches m
+        LEFT JOIN users uA ON m.personA = uA.id
+        LEFT JOIN users uB ON m.personB = uB.id
+        WHERE m.personA = ? OR m.personB = ?
+        ORDER BY date, m.id DESC
+        """,
+        (user_id, user_id),
+    )
+    matches = cur.fetchall()
+    pages = []
+    for start_i in range(0, len(matches), 15):
+        lines = [
+            f"{i + 1}. {mention(discord_a)} <-> {mention(discord_b)} (ID: {mid})"
+            for i, (mid, date, discord_a, discord_b) in enumerate(
+                matches[start_i : start_i + 15]
+            )
+        ]
+        embed = discord.Embed(
+            title="1-on-1s history",
+            description="\n".join(lines),
+        ).set_footer(
+            text="Use `/unrecord_pair <ID>` to remove a match from your history"
+        )
+        pages.append(Page(embeds=[embed]))
+    paginator = Paginator(pages=pages)
+    await paginator.respond(
+        ctx.interaction,
+        ephemeral=False,
     )
