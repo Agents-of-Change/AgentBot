@@ -247,10 +247,33 @@ async def record_pair(
 @guild_slash_command(description="")
 async def unrecord_pair(
     ctx,
-    user_a: discord.Option(input_type=discord.SlashCommandOptionType.user),
-    user_b: discord.Option(input_type=discord.SlashCommandOptionType.user),
+    match_id: discord.Option(
+        description="ID from match history",
+        input_type=discord.SlashCommandOptionType.integer,
+    ),
 ):
-    user_a_discord, user_b_discord = map(id_from_mention, (user_a, user_b))
+    try:
+        match_id = int(match_id)
+    except ValueError:
+        return await ctx.respond("ID is not a valid integer", ephemeral=True)
+
+    cur = db.execute(
+        """
+        SELECT
+            date, uA.id, uA.discordId, uB.id, uB.discordId
+        FROM past_matches m
+        LEFT JOIN users uA ON m.personA = uA.id
+        LEFT JOIN users uB ON m.personB = uB.id
+        WHERE m.id = ?
+        """,
+        (match_id,),
+    )
+    r = cur.fetchone()
+    if r is None:
+        return await ctx.respond("Cannot find a match with that ID", ephemeral=True)
+    date, user_a_id, user_a_discord, user_b_id, user_b_discord = r
+    user_a_discord, user_b_discord = map(int, (user_a_discord, user_b_discord))
+
     if not any(
         (
             ctx.author.id == user_a_discord,
@@ -259,53 +282,21 @@ async def unrecord_pair(
         )
     ):
         return await ctx.respond(
-            "You must be an admin to unrecord a match that does not involve you"
+            "You must be an admin to unrecord a match that does not involve you. "
+            + f"(You are trying to remove a match between {mention(user_a_discord)} and {mention(user_b_discord)})",
+            allowed_mentions=discord.AllowedMentions.none(),
+            ephemeral=True,
         )
 
-    try:
-        user_a_id = fetch_user_id(user_a_discord)
-    except NotRegisteredError:
-        return await ctx.send_response(
-            f"{user_a} has never registered for one_on_ones",
-            allowed_mentions=discord.AllowedMentions.none(),
-        )
-    try:
-        user_b_id = fetch_user_id(user_b_discord)
-    except NotRegisteredError:
-        return await ctx.send_response(
-            f"{user_b} has never registered for one_on_ones",
-            allowed_mentions=discord.AllowedMentions.none(),
-        )
-
-    cur = db.cursor()
-    cur.execute(
-        """
-            SELECT
-                id, date
-            FROM past_matches
-            WHERE
-                (personA = ? AND personB = ?) OR (personA = ? AND personB = ?)
-            ORDER BY date DESC, id DESC
-            LIMIT 1
-        """,
-        (user_a_id, user_b_id, user_b_id, user_a_id),
-    )
-    r = cur.fetchone()
-    if r is None:
-        return await ctx.send_response(
-            f"{user_a} and {user_b} never matched",
-            allowed_mentions=discord.AllowedMentions.none(),
-        )
-    m_id, date = r
     # fine with this being destructive because it can be easily re-created
     db.execute(
         """
             DELETE FROM past_matches WHERE id = ?
         """,
-        (m_id,),
+        (match_id,),
     )
     return await ctx.send_response(
-        f"Pairing ID {m_id} on {date} between {user_a} and {user_b} has been deleted.",
+        f"Pairing ID {match_id} on {date} between {mention(user_a_discord)} and {mention(user_b_discord)} has been deleted.",
         allowed_mentions=discord.AllowedMentions.none(),
     )
 
