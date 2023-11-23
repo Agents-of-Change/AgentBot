@@ -322,7 +322,7 @@ def last_matches_paginated(page):
 
 
 @guild_slash_command(description="List previous 1-1 pairings")
-async def paging_test(
+async def match_history(
     ctx: discord.context.ApplicationContext,
     user: discord.Option(
         input_type=discord.SlashCommandOptionType.user, required=False
