@@ -213,7 +213,11 @@ async def record_pair(
 ):
     user_a_discord, user_b_discord = map(id_from_mention, (user_a, user_b))
     if not any(
-        (ctx.author.id == user_a_discord, ctx.author.id == user_b_discord, is_admin(ctx.author))
+        (
+            ctx.author.id == user_a_discord,
+            ctx.author.id == user_b_discord,
+            is_admin(ctx.author),
+        )
     ):
         return await ctx.respond(
             "You must be an admin to record a match that does not involve you"
@@ -248,7 +252,11 @@ async def unrecord_pair(
 ):
     user_a_discord, user_b_discord = map(id_from_mention, (user_a, user_b))
     if not any(
-        (ctx.author.id == user_a_discord, ctx.author.id == user_b_discord, is_admin(ctx.author))
+        (
+            ctx.author.id == user_a_discord,
+            ctx.author.id == user_b_discord,
+            is_admin(ctx.author),
+        )
     ):
         return await ctx.respond(
             "You must be an admin to unrecord a match that does not involve you"
