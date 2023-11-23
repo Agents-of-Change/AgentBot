@@ -361,7 +361,13 @@ async def paging_test(
                 matches[start_i : start_i + 15]
             )
         ]
-        pages.append(Page(embeds=[discord.Embed(title="1-on-1s history", description="\n".join(lines))]))
+        embed = discord.Embed(
+            title="1-on-1s history",
+            description="\n".join(lines),
+        ).set_footer(
+            text="Use `/unrecord_pair <ID>` to remove a match from your history"
+        )
+        pages.append(Page(embeds=[embed]))
     paginator = Paginator(pages=pages)
     await paginator.respond(
         ctx.interaction,
