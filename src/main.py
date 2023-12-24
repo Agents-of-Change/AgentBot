@@ -90,15 +90,20 @@ async def lockout(ctx, duration: str):
         await ctx.respond(f"Error: {e}")
 
 
-@bot.user_command(name="Jump to Introduction", guild_ids=[GUILD_ID])
-async def jump_to_introduction(ctx, member):
-    # Replace with the ID of the #introductions channel
+async def latest_intro_message(member_id: int):
+    member_id = int(member_id)
     channel_id = INTRODUCTIONS_CHANNEL_ID
     channel = bot.get_channel(channel_id)
 
     introduction_message = await channel.history(limit=None, oldest_first=False).find(
-        lambda m: m.author == member and m.channel.type == discord.ChannelType.text
+        lambda m: m.author.id == member_id and m.channel.type == discord.ChannelType.text
     )
+    return introduction_message
+
+
+@bot.user_command(name="Jump to Introduction", guild_ids=[GUILD_ID])
+async def jump_to_introduction(ctx, member):
+    introduction_message = await latest_intro_message(member.id)
 
     if introduction_message:
         response = f"{member.mention}'s introduction: {introduction_message.jump_url}"
