@@ -128,6 +128,8 @@ async def task_add_unupdated_role():
     guild = bot.get_guild(GUILD_ID)
     introduced_role = guild.get_role(INTRODUCED_ROLE_ID)
     unupdated_role = guild.get_role(UNUPDATED_ROLE_ID)
+    print(f"Introduced role: {introduced_role.name!r}")
+    print(f"Unupdated role: {unupdated_role.name!r}")
 
     if introduced_role is None:
         raise AssertionError("Role with INTRODUCED_ROLE_ID does not exist")
