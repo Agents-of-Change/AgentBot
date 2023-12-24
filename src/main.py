@@ -2,7 +2,7 @@ import logging
 from sqlite3 import OperationalError
 import asyncio
 from web import start_app
-from config import TOKEN, GUILD_ID, LOCKOUT_ROLE_ID
+from config import TOKEN, GUILD_ID, LOCKOUT_ROLE_ID, INTRODUCTIONS_CHANNEL_ID
 from utils import *
 from one_on_ones import *
 import time
@@ -93,7 +93,7 @@ async def lockout(ctx, duration: str):
 @bot.user_command(name="Jump to Introduction", guild_ids=[GUILD_ID])
 async def jump_to_introduction(ctx, member):
     # Replace with the ID of the #introductions channel
-    channel_id = 1021569666398826586
+    channel_id = INTRODUCTIONS_CHANNEL_ID
     channel = bot.get_channel(channel_id)
 
     introduction_message = await channel.history(limit=None, oldest_first=True).find(
