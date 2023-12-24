@@ -15,6 +15,7 @@ from one_on_ones import *
 import time
 import asyncio
 import discord
+import discord.errors
 from datetime import datetime, timezone, timedelta
 
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +23,7 @@ logging.basicConfig(level=logging.INFO)
 
 async def background(every=10):
     await bot.wait_until_ready()
+    guild = bot.get_guild(GUILD_ID)
     while True:
         await asyncio.sleep(every)
         res = db.execute(
@@ -32,8 +34,10 @@ async def background(every=10):
             ),
         )
         for _, user_id, role_id in res:
-            guild = bot.get_guild(GUILD_ID)
-            user = await guild.fetch_member(user_id)
+            try:
+                user = await guild.fetch_member(user_id)
+            except discord.errors.NotFound:
+                pass
             await user.remove_roles(guild.get_role(role_id))
 
         db.executemany(
