@@ -96,7 +96,7 @@ async def jump_to_introduction(ctx, member):
     channel_id = INTRODUCTIONS_CHANNEL_ID
     channel = bot.get_channel(channel_id)
 
-    introduction_message = await channel.history(limit=None, oldest_first=True).find(
+    introduction_message = await channel.history(limit=None, oldest_first=False).find(
         lambda m: m.author == member and m.channel.type == discord.ChannelType.text
     )
 
