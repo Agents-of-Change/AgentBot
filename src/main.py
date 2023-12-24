@@ -150,7 +150,7 @@ async def task_add_unupdated_role():
     print(f"{old_len} introducted members, {len(pairs)} with role")
 
     for member, deltat in pairs:
-        if deltat.seconds < 6 * 30:
+        if deltat.months < 6 * 30:
             continue
         print(f"Adding role to {member.id} ({member.display_name!r}) deltat={deltat!r}")
         await member.add_roles(unupdated_role)
