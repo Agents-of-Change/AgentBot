@@ -2,12 +2,20 @@ import logging
 from sqlite3 import OperationalError
 import asyncio
 from web import start_app
-from config import TOKEN, GUILD_ID, LOCKOUT_ROLE_ID, INTRODUCTIONS_CHANNEL_ID
+from config import (
+    TOKEN,
+    GUILD_ID,
+    LOCKOUT_ROLE_ID,
+    INTRODUCED_ROLE_ID,
+    UNUPDATED_ROLE_ID,
+    INTRODUCTIONS_CHANNEL_ID,
+)
 from utils import *
 from one_on_ones import *
 import time
 import asyncio
 import discord
+from datetime import datetime, timezone, timedelta
 
 logging.basicConfig(level=logging.INFO)
 
@@ -37,6 +45,7 @@ async def background(every=10):
 async def on_ready():
     print(f"We have logged in as {bot.user}")
     asyncio.create_task(background())
+    asyncio.create_task(task_add_unupdated_role())
 
 
 @bot.event
@@ -96,7 +105,8 @@ async def latest_intro_message(member_id: int):
     channel = bot.get_channel(channel_id)
 
     introduction_message = await channel.history(limit=None, oldest_first=False).find(
-        lambda m: m.author.id == member_id and m.channel.type == discord.ChannelType.text
+        lambda m: m.author.id == member_id
+        and m.channel.type == discord.ChannelType.text
     )
     return introduction_message
 
@@ -111,6 +121,39 @@ async def jump_to_introduction(ctx, member):
         response = f"{member.mention} has not posted an introduction message"
 
     await ctx.response.send_message(response, ephemeral=True)
+
+
+async def task_add_unupdated_role():
+    await bot.wait_until_ready()
+    guild = bot.get_guild(GUILD_ID)
+    introduced_role = guild.get_role(INTRODUCED_ROLE_ID)
+    unupdated_role = guild.get_role(UNUPDATED_ROLE_ID)
+
+    if introduced_role is None:
+        raise AssertionError("Role with INTRODUCED_ROLE_ID does not exist")
+    if unupdated_role is None:
+        raise AssertionError("Role with UNUPDATED_ROLE_ID does not exist")
+
+    print("Scraping intros history")
+    intros = {}
+    intros_channel = bot.get_channel(INTRODUCTIONS_CHANNEL_ID)
+    async for message in intros_channel.history(limit=None, oldest_first=True):
+        dt = message.created_at
+        if message.edited_at is not None:
+            dt = message.edited_at
+        intros[message.author.id] = datetime.now(timezone.utc) - dt
+
+    old_len = len(intros)
+    pairs = [(member, intros.get(member.id, timedelta.max)) for member in introduced_role.members]
+    print(f"{old_len} introducted members, {len(pairs)} with role")
+
+    for member, deltat in pairs:
+        if deltat.seconds < 6 * 30:
+            continue
+        print(f"Adding role to {member.id} ({member.display_name!r}) deltat={deltat!r}")
+        await member.add_roles(unupdated_role)
+
+    print("done")
 
 
 def check_db_conn():
