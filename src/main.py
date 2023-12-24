@@ -16,6 +16,7 @@ import time
 import asyncio
 import discord
 import discord.errors
+from discord.ext import tasks
 from datetime import datetime, timezone, timedelta
 
 logging.basicConfig(level=logging.INFO)
@@ -127,8 +128,8 @@ async def jump_to_introduction(ctx, member):
     await ctx.response.send_message(response, ephemeral=True)
 
 
+@tasks.loop(hours=24)
 async def task_add_unupdated_role():
-    await bot.wait_until_ready()
     guild = bot.get_guild(GUILD_ID)
     introduced_role = guild.get_role(INTRODUCED_ROLE_ID)
     unupdated_role = guild.get_role(UNUPDATED_ROLE_ID)
@@ -167,6 +168,11 @@ async def task_add_unupdated_role():
         await member.remove_roles(unupdated_role)
 
     print("done")
+
+
+@task_add_unupdated_role.before_loop
+async def before_add_unupdated_role():
+    await bot.wait_until_ready()
 
 
 def check_db_conn():
