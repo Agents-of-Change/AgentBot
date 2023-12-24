@@ -153,11 +153,18 @@ async def task_add_unupdated_role():
     pairs = [(member, intros.get(member.id, timedelta.max)) for member in introduced_role.members]
     print(f"{old_len} introducted members, {len(pairs)} with role")
 
-    for member, deltat in pairs:
-        if deltat.days < 6 * 30:
-            continue
-        print(f"Adding role to {member.id} ({member.display_name!r}) deltat={deltat!r}")
+    has_role = set(unupdated_role.members)
+    needs_role = {member for member, deltat in pairs if deltat.days >= 6 * 30}
+    to_add = needs_role - has_role
+    to_remove = has_role - needs_role
+
+    for member in to_add:
+        print(f"Adding role to {member.id} ({member.display_name!r})")
         await member.add_roles(unupdated_role)
+
+    for member in to_remove:
+        print(f"Removing role from {member.id} ({member.display_name!r})")
+        await member.remove_roles(unupdated_role)
 
     print("done")
 
