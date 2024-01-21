@@ -9,6 +9,7 @@ from config import (
     INTRODUCED_ROLE_ID,
     UNUPDATED_ROLE_ID,
     INTRODUCTIONS_CHANNEL_ID,
+    MEMBER_ROLE_ID
 )
 from utils import *
 from one_on_ones import *
@@ -44,13 +45,6 @@ async def background(every=10):
         db.executemany(
             "DELETE FROM timed_roles WHERE id = ?", ((_id,) for _id, _ in res)
         )
-
-
-@bot.event
-async def on_ready():
-    print(f"We have logged in as {bot.user}")
-    asyncio.create_task(background())
-    asyncio.create_task(task_add_unupdated_role())
 
 
 @bot.event
@@ -128,6 +122,36 @@ async def jump_to_introduction(ctx, member):
     await ctx.response.send_message(response, ephemeral=True)
 
 
+class FaqMenuView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None) # timeout must be None for persistent Views
+
+    @discord.ui.button(label="✅", custom_id="faq-ack-1", style=discord.ButtonStyle.gray)
+    async def button_callback(self, button, interaction):
+        if interaction.guild_id != GUILD_ID:
+            raise AssertionError(f"Did not expect button to be called in guild {interaction.guild_id!r}")
+
+        guild = bot.get_guild(GUILD_ID)
+        member_role = guild.get_role(MEMBER_ROLE_ID)
+        try:
+            await interaction.user.add_roles(member_role)
+        except Exception as e:
+            await interaction.response.send_message("An error occurred while giving you the member role.", ephemeral=True)
+            raise e
+        await interaction.response.send_message("Gave you the member role!", ephemeral=True)
+
+
+@admin_guild_slash_command()
+@admin_only
+async def create_faqs_menu(ctx, channel: discord.Option(discord.TextChannel)):
+    embed = discord.Embed(
+        title="FAQs Acknowledgement",
+        description="Click the button below to acknowledge you've read the above"
+    )
+    await channel.send(embed=embed, view=FaqMenuView())
+    await ctx.respond("Done", ephemeral=True)
+
+
 @tasks.loop(hours=24)
 async def task_add_unupdated_role():
     guild = bot.get_guild(GUILD_ID)
@@ -173,6 +197,14 @@ async def task_add_unupdated_role():
 @task_add_unupdated_role.before_loop
 async def before_add_unupdated_role():
     await bot.wait_until_ready()
+
+
+@bot.event
+async def on_ready():
+    print(f"We have logged in as {bot.user}")
+    bot.add_view(FaqMenuView())
+    asyncio.create_task(background())
+    asyncio.create_task(task_add_unupdated_role())
 
 
 def check_db_conn():

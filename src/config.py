@@ -6,6 +6,7 @@ ADMIN_ROLE_ID = int(os.environ["ADMIN_ROLE_ID"])
 LOCKOUT_ROLE_ID = int(os.environ["LOCKOUT_ROLE_ID"])
 INTRODUCED_ROLE_ID = int(os.environ["INTRODUCED_ROLE_ID"])
 UNUPDATED_ROLE_ID = int(os.environ["UNUPDATED_ROLE_ID"])
+MEMBER_ROLE_ID = int(os.environ["MEMBER_ROLE_ID"])
 INTRODUCTIONS_CHANNEL_ID = int(os.environ["INTRODUCTIONS_CHANNEL_ID"])
 DB_FILENAME = os.environ["DB_FILENAME"]
 if DB_FILENAME == ":memory:":
