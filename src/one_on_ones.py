@@ -174,8 +174,7 @@ def matches_with_discord_ids(matches):
     return [(uid_to_discord_id[a], uid_to_discord_id[b]) for a, b in matches]
 
 
-@guild_slash_command()
-@admin_only
+@admin_guild_slash_command()
 async def roll_one_on_ones(ctx):
     seed, matches, unmatched = generate_matches()
     discord_matches = matches_with_discord_ids(matches)

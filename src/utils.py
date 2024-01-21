@@ -10,6 +10,9 @@ intents.members = True
 bot = discord.Bot(intents=intents, auto_sync_commands=False)
 guild_slash_command = functools.partial(bot.slash_command, guild_ids=[GUILD_ID])
 
+admin_group = bot.create_group("admin", "Admin commands")
+admin_guild_slash_command = functools.partial(admin_group.command, guild_ids=[GUILD_ID])
+
 
 def is_admin(author):
     return any(r.id == ADMIN_ROLE_ID for r in author.roles)
