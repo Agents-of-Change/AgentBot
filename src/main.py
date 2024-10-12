@@ -14,6 +14,7 @@ from config import (
 from utils import *
 from one_on_ones import *
 import time
+import io
 import asyncio
 import discord
 import discord.errors
@@ -151,6 +152,19 @@ async def create_faqs_menu(ctx, channel: discord.Option(discord.TextChannel)):
     await channel.send(embed=embed, view=FaqMenuView())
     await ctx.respond("Done", ephemeral=True)
 
+@guild_slash_command()
+async def download(ctx):
+    if not isinstance(ctx.channel, discord.Thread):
+        await ctx.respond("This command can only be used in a thread.", ephemeral=True)
+        return
+
+    messages = []
+    async for message in ctx.channel.history(limit=None, oldest_first=True):
+        messages.append(f"{message.author.name}: {message.content}")
+
+    content = "\n".join(messages)
+    file = discord.File(io.BytesIO(content.encode()), filename=f"{ctx.channel.name}.txt")
+    await ctx.respond("Here's the thread content:", file=file)
 
 @tasks.loop(hours=24)
 async def task_add_unupdated_role():
