@@ -169,7 +169,7 @@ async def download(ctx):
     file = discord.File(io.BytesIO(content.encode()), filename=f"{ctx.channel.name}.txt")
     
     # Edit the deferred response with the file
-    await ctx.edit_original_response(content="Here's the thread content:", file=file)
+    await ctx.followup.send(content="Here's the thread content:", file=file)
 
 @tasks.loop(hours=24)
 async def task_add_unupdated_role():
