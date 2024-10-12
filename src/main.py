@@ -162,6 +162,11 @@ async def download(ctx):
     await ctx.defer()
 
     messages = []
+    # Get the initial thread message
+    thread_starter = await ctx.channel.fetch_message(ctx.channel.id)
+    messages.append(f"{thread_starter.author.name}: {thread_starter.content}")
+
+    # Get the rest of the messages
     async for message in ctx.channel.history(limit=None, oldest_first=True):
         messages.append(f"{message.author.name}: {message.content}")
 
@@ -170,7 +175,6 @@ async def download(ctx):
     
     # Edit the deferred response with the file
     await ctx.followup.send(content="Here's the thread content:", file=file)
-
 @tasks.loop(hours=24)
 async def task_add_unupdated_role():
     guild = bot.get_guild(GUILD_ID)
