@@ -20,7 +20,7 @@ import discord
 import discord.errors
 from discord.ext import tasks
 from datetime import datetime, timezone, timedelta
-from scripts.birthdays import check_birthdays
+from birthdays import check_birthdays
 
 logging.basicConfig(level=logging.INFO)
 
