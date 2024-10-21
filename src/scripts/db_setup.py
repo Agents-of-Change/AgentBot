@@ -5,9 +5,6 @@ from pathlib import Path
 hack_path()
 from db import db
 
-db_path = Path(__file__).parent.parent / "db.sqlite3"
-db = sqlite3.connect(db_path)
-
 db.execute(
     """
 CREATE TABLE users (

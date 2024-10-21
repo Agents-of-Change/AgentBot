@@ -226,8 +226,7 @@ async def task_add_unupdated_role():
         await member.remove_roles(unupdated_role)
 
     print("done")
-
-@tasks.loop(time=time(hour=23, minute=45))
+@tasks.loop(time=datetime.time(hour=23, minute=45))
 async def task_check_birthdays():
     await check_birthdays()
 
