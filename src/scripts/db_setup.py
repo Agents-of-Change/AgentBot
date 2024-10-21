@@ -1,7 +1,12 @@
 from hack_path import hack_path
+import sqlite3
+from pathlib import Path
 
 hack_path()
 from db import db
+
+db_path = Path(__file__).parent.parent / "db.sqlite3"
+db = sqlite3.connect(db_path)
 
 db.execute(
     """
@@ -39,3 +44,17 @@ CREATE TABLE timed_roles  (
 )
 """
 )
+
+db.execute(
+    """
+CREATE TABLE birthdays (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    birthday DATE NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users (id)
+)
+"""
+)
+
+db.commit()
+db.close()

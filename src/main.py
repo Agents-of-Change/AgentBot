@@ -20,6 +20,7 @@ import discord
 import discord.errors
 from discord.ext import tasks
 from datetime import datetime, timezone, timedelta
+from birthdays import check_birthdays
 
 logging.basicConfig(level=logging.INFO)
 
@@ -153,6 +154,15 @@ async def create_faqs_menu(ctx, channel: discord.Option(discord.TextChannel)):
     await ctx.respond("Done", ephemeral=True)
 
 @guild_slash_command()
+async def set_birthday(ctx, birthday: str):
+    try:
+        birthday_date = datetime.strptime(birthday, "%Y-%m-%d").date()
+        await add_birthday(str(ctx.author.id), birthday_date)
+        await ctx.respond("Your birthday has been set successfully!")
+    except ValueError:
+        await ctx.respond("Invalid date format. Please use YYYY-MM-DD.")
+
+@guild_slash_command()
 async def download(ctx):
     if not isinstance(ctx.channel, discord.Thread):
         await ctx.respond("This command can only be used in a thread.", ephemeral=True)
@@ -217,6 +227,14 @@ async def task_add_unupdated_role():
 
     print("done")
 
+@tasks.loop(time=time(hour=23, minute=45))
+async def task_check_birthdays():
+    await check_birthdays()
+
+@task_check_birthdays.before_loop
+async def before_check_birthdays():
+    await bot.wait_until_ready()
+
 
 @task_add_unupdated_role.before_loop
 async def before_add_unupdated_role():
@@ -243,6 +261,7 @@ def check_db_conn():
 
 async def main():
     check_db_conn()
+    bot.loop.create_task(task_check_birthdays())
     await start_app()
     try:
         await bot.start(TOKEN)
