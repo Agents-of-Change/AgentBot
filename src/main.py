@@ -19,7 +19,7 @@ import asyncio
 import discord
 import discord.errors
 from discord.ext import tasks
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, time as datetime_time
 from scripts.birthdays import check_birthdays
 
 logging.basicConfig(level=logging.INFO)
@@ -227,7 +227,7 @@ async def task_add_unupdated_role():
 
     print("done")
 
-@tasks.loop(time=time(hour=23, minute=45))
+@tasks.loop(time=datetime_time(hour=23, minute=45))
 async def task_check_birthdays():
     await check_birthdays()
 
