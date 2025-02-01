@@ -1,11 +1,15 @@
 from hack_path import hack_path
 import sqlite3
 from pathlib import Path
+import dotenv
+import os
+
+dotenv.load_dotenv()
 
 hack_path()
 from db import db
 
-db_path = Path(__file__).parent.parent / "db.sqlite3"
+db_path = Path(__file__).parent.parent / os.environ["DB_FILENAME"]
 db = sqlite3.connect(db_path)
 
 db.execute(
