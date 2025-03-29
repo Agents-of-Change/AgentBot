@@ -270,6 +270,35 @@ async def main():
             await bot.close()
 
 
+@admin_guild_slash_command()
+@admin_only
+async def delete_all_from(ctx, user: discord.User):
+    """Delete all messages from a specific user in the current channel"""
+    await ctx.defer(ephemeral=True)
+    
+    deleted_count = 0
+    try:
+        async for message in ctx.channel.history(limit=None):
+            if message.author.id == user.id:
+                try:
+                    await message.delete()
+                    deleted_count += 1
+                except discord.errors.Forbidden:
+                    await ctx.followup.send("I don't have permission to delete messages in this channel.", ephemeral=True)
+                    return
+                except discord.errors.NotFound:
+                    # Message was already deleted
+                    continue
+                except Exception as e:
+                    logging.error(f"Error deleting message: {e}")
+                    continue
+                    
+        await ctx.followup.send(f"Successfully deleted {deleted_count} messages from {user.mention}", ephemeral=True)
+    except Exception as e:
+        logging.error(f"Error in delete_all_from: {e}")
+        await ctx.followup.send("An error occurred while trying to delete messages.", ephemeral=True)
+
+
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
